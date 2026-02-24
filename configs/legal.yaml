@@ -1,0 +1,54 @@
+# ──────────────────────────────────────────────────────────────────
+# NeSy-Core — Legal Domain Configuration
+# Domain: legal
+#
+# Full reasoning traces required for audit.  Strict mode enabled
+# because legal conclusions must be fully justified.  Lower NSI
+# thresholds to detect subtly missing precedent or statute.
+# ──────────────────────────────────────────────────────────────────
+
+domain: legal
+
+symbolic:
+  max_forward_chain_depth: 60      # legal reasoning chains can be long
+  hard_rule_weight_threshold: 0.95
+  satisfiability_max_steps: 1500
+  betti_warn_threshold: 1          # disconnected reasoning = flag immediately
+
+nsi:
+  context_thresholds:
+    medical: 0.35
+    legal: 0.30                    # primary domain threshold
+    code: 0.25
+    general: 0.15
+  max_null_items_returned: 80
+  type3_weight_cutoff: 0.55
+  type2_weight_cutoff: 0.30        # surface more meaningful absences
+
+metacognition:
+  doubt_threshold: 0.65
+  reliable_threshold: 0.80
+  strict_mode: true                # legal output must be fully justified
+  trace_all_steps: true            # full audit trail required
+  calibration_min_samples: 150
+  shadow_enabled: true             # enforce shadow reasoning
+  shadow_critical_distance: 1      # d<=1 triggers policy action
+  shadow_policy: flag              # downgrade to FLAGGED on CRITICAL shadow
+  shadow_apply_domains:
+    - medical
+    - legal
+  shadow_escalation_flag_prefix: SHADOW
+  shadow_max_exact_facts: 15
+  shadow_max_depth: 7
+
+continual:
+  lambda_ewc: 3000.0
+  replay_buffer_size: 800
+  consolidation_trigger: 75
+
+deployment:
+  quantization_bits: 8
+  max_batch_size: 32
+  inference_timeout_ms: 500        # legal reasoning can be more complex
+  npu_enabled: false
+  lite_mode: false

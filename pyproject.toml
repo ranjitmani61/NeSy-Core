@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nesy-core"
+version = "0.1.1"
+description = "Unified Neuro-Symbolic AI Framework with Meta-Cognition and NSI"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+
+dependencies = [
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+torch = [
+    "torch>=2.0",
+    "transformers>=4.35",
+]
+server = [
+    "fastapi>=0.104",
+    "uvicorn[standard]>=0.24",
+]
+edge = [
+    "onnx>=1.15",
+    "onnxruntime>=1.16",
+]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "ruff>=0.1",
+    "mypy>=1.6",
+]
+all = ["nesy-core[torch,server,edge,dev]"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=nesy --cov-report=term-missing"
+filterwarnings = [
+    "ignore::DeprecationWarning:torch.*",
+    "ignore::FutureWarning:copyreg.*",
+    "ignore::UserWarning:torch.*",
+    "ignore:.*LeafSpec.*:FutureWarning",
+    "ignore:.*torch.jit.trace.*:DeprecationWarning",
+    "ignore:.*torch.jit.trace_method.*:DeprecationWarning",
+    "ignore:.*dynamic_axes.*:UserWarning",
+    "ignore:.*from_dynamic_axes_to_dynamic_shapes.*:DeprecationWarning",
+    "ignore:.*is deprecated.*:FutureWarning",
+    "ignore:.*is not supported in Python 3.14.*:DeprecationWarning",
+    "ignore:.*self.trainer.*reference is not registered.*:UserWarning",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.setuptools.packages.find]
+include = ["nesy*"]

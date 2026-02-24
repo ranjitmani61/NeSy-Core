@@ -1,0 +1,28 @@
+# ── NeSy-Core Development Image ───────────────────────────────────────────
+# Includes dev / test dependencies, live-mount for rapid iteration.
+# Usage:
+#   docker build -f docker/Dockerfile.dev -t nesy-core-dev .
+#   docker run -v .:/workspace -it nesy-core-dev bash
+# ──────────────────────────────────────────────────────────────────────────
+
+FROM python:3.11-slim
+LABEL maintainer="NeSy-Core Contributors"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git curl build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+# Install project in editable mode with all extras
+COPY pyproject.toml setup.cfg README.md ./
+COPY nesy/ nesy/
+RUN pip install --no-cache-dir -e ".[all]"
+
+# Copy the rest (tests, examples, scripts, docs)
+COPY . .
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+CMD ["pytest", "tests/", "-v", "--tb=short"]

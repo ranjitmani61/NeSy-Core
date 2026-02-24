@@ -1,0 +1,85 @@
+# ──────────────────────────────────────────────────────────────────
+# NeSy-Core .gitignore
+# ──────────────────────────────────────────────────────────────────
+
+# ── Python ─────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ── Virtual environments ───────────────────────────────────────────
+.venv/
+venv/
+ENV/
+env/
+
+# ── IDE / Editor ───────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ── Testing ────────────────────────────────────────────────────────
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+.tox/
+.nox/
+
+# ── mypy ───────────────────────────────────────────────────────────
+.mypy_cache/
+dmypy.json
+
+# ── Distribution / Packaging ──────────────────────────────────────
+*.tar.gz
+nesy_core.egg-info/
+
+# ── Environment variables ─────────────────────────────────────────
+.env
+.env.local
+.env.production
+
+# ── OS files ───────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Docker ─────────────────────────────────────────────────────────
+docker-compose.override.yml
+
+# ── Jupyter Notebooks checkpoints ──────────────────────────────────
+.ipynb_checkpoints/
+
+# ── Generated docs ─────────────────────────────────────────────────
+docs/generated/
+site/
+
+# ── Model artefacts ────────────────────────────────────────────────
+*.onnx
+*.tflite
+*.mlmodel
+*.pt
+*.pth
+models/
+exports/
+
+# ── Concept graph caches ──────────────────────────────────────────
+*.concept_graph.json

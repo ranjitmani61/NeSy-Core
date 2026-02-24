@@ -1,0 +1,45 @@
+# ──────────────────────────────────────────────────────────────────
+# NeSy-Core — Edge Deployment Configuration
+# Domain: general (optimised for constrained hardware)
+#
+# Minimised memory footprint, NPU routing enabled, aggressive
+# quantization, reduced concept graph for mobile/Raspberry Pi.
+# Targets < 200 ms inference latency on NPU hardware.
+# ──────────────────────────────────────────────────────────────────
+
+domain: general
+
+symbolic:
+  max_forward_chain_depth: 20      # keep chains short for speed
+  hard_rule_weight_threshold: 0.95
+  satisfiability_max_steps: 200    # faster convergence required
+  betti_warn_threshold: 2
+
+nsi:
+  context_thresholds:
+    medical: 0.35
+    legal: 0.30
+    code: 0.25
+    general: 0.15
+  max_null_items_returned: 20      # limit output size on edge
+  type3_weight_cutoff: 0.60
+  type2_weight_cutoff: 0.35
+
+metacognition:
+  doubt_threshold: 0.60
+  reliable_threshold: 0.75
+  strict_mode: false
+  trace_all_steps: false           # disable full tracing to save memory
+  calibration_min_samples: 50      # fewer calibration samples on edge
+
+continual:
+  lambda_ewc: 1000.0
+  replay_buffer_size: 100          # small buffer for constrained memory
+  consolidation_trigger: 200       # consolidate less often to save cycles
+
+deployment:
+  quantization_bits: 4             # aggressive quantization for NPU
+  max_batch_size: 8                # small batch for limited RAM
+  inference_timeout_ms: 200        # strict latency target
+  npu_enabled: true                # route neural inference to NPU
+  lite_mode: true                  # compressed concept graph

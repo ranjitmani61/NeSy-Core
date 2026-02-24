@@ -1,0 +1,42 @@
+# ── NeSy-Core Docker Compose ──────────────────────────────────────────────
+# Services:
+#   server – production inference REST API
+#   dev    – development / test container (live-mount)
+#
+# Quick start:
+#   docker compose -f docker/docker-compose.yml up server
+#   docker compose -f docker/docker-compose.yml run dev pytest tests/ -v
+# ──────────────────────────────────────────────────────────────────────────
+
+version: "3.9"
+
+services:
+  server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: nesy-core:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - NESY_LOG_LEVEL=INFO
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    image: nesy-core-dev:latest
+    volumes:
+      - ..:/workspace
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+    stdin_open: true
+    tty: true
+    command: ["bash"]

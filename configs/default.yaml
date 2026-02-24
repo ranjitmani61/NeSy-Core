@@ -1,0 +1,50 @@
+# ──────────────────────────────────────────────────────────────────
+# NeSy-Core — Default Configuration
+# Domain: general
+# ──────────────────────────────────────────────────────────────────
+
+domain: general
+
+symbolic:
+  max_forward_chain_depth: 50
+  hard_rule_weight_threshold: 0.95
+  satisfiability_max_steps: 1000
+  betti_warn_threshold: 2          # β₀ > this → log warning
+
+nsi:
+  context_thresholds:
+    medical: 0.35
+    legal: 0.30
+    code: 0.25
+    general: 0.15
+  max_null_items_returned: 50
+  type3_weight_cutoff: 0.60        # above this + critical class → Type3
+  type2_weight_cutoff: 0.35        # above this → Type2
+
+metacognition:
+  doubt_threshold: 0.60
+  reliable_threshold: 0.75
+  strict_mode: false
+  trace_all_steps: true
+  calibration_min_samples: 100
+  shadow_enabled: true             # compute shadow (flags only, no downgrade)
+  shadow_critical_distance: 1
+  shadow_policy: none              # add flags but do not downgrade status
+  shadow_apply_domains:
+    - medical
+    - legal
+  shadow_escalation_flag_prefix: SHADOW
+  shadow_max_exact_facts: 15
+  shadow_max_depth: 7
+
+continual:
+  lambda_ewc: 1000.0
+  replay_buffer_size: 500
+  consolidation_trigger: 100       # consolidate every N new samples
+
+deployment:
+  quantization_bits: 8
+  max_batch_size: 32
+  inference_timeout_ms: 200
+  npu_enabled: false
+  lite_mode: false
