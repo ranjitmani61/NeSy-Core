@@ -8,14 +8,14 @@ NeSy-Lite keeps only:
     - Top-K edges by weight per concept
     - Critical class concepts (never pruned)
     - Domain-specific high-frequency concepts
-    
+
 Result: 10-100x smaller graph, ~85% of full accuracy on most tasks.
 """
+
 from __future__ import annotations
 import logging
-from typing import Dict, List, Optional, Set
+from typing import Optional, Set
 from nesy.nsi.concept_graph import ConceptGraphEngine
-from nesy.core.types import ConceptEdge
 
 logger = logging.getLogger(__name__)
 
@@ -31,13 +31,13 @@ class NeSyLite:
         preserve_concepts: Optional[Set[str]] = None,
     ) -> ConceptGraphEngine:
         """Compress a full concept graph to NeSy-Lite format.
-        
+
         Args:
             source:             Full ConceptGraphEngine
             top_k_edges:        Max edges per concept node
             min_weight:         Drop edges below this weight
             preserve_concepts:  Always keep these concepts (critical domains)
-        
+
         Returns:
             New ConceptGraphEngine with compressed graph.
         """
@@ -45,10 +45,7 @@ class NeSyLite:
         lite = ConceptGraphEngine(domain=source.domain + "_lite")
 
         for source_concept, targets in source._graph.items():
-            edges = sorted(
-                targets.values(),
-                key=lambda e: -e.weight
-            )
+            edges = sorted(targets.values(), key=lambda e: -e.weight)
             # Keep top-K edges above min weight
             kept = [e for e in edges if e.weight >= min_weight][:top_k_edges]
 
@@ -64,7 +61,6 @@ class NeSyLite:
         lite_edges = sum(len(v) for v in lite._graph.values())
         ratio = lite_edges / max(orig_edges, 1)
         logger.info(
-            f"NeSy-Lite compression: {orig_edges} → {lite_edges} edges "
-            f"({ratio:.1%} retained)"
+            f"NeSy-Lite compression: {orig_edges} → {lite_edges} edges ({ratio:.1%} retained)"
         )
         return lite

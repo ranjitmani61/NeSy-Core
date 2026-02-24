@@ -11,16 +11,17 @@ Strategy: consolidate when any of these conditions are met:
     2. Performance on validation set drops below threshold (quality-based)
     3. Task boundary explicitly signalled by caller (explicit)
 """
+
 from __future__ import annotations
 import logging
-from typing import Callable, Optional
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 
 class ConsolidationScheduler:
     """Decides when to trigger EWC consolidation.
-    
+
     Usage:
         scheduler = ConsolidationScheduler(samples_trigger=100)
         for sample in data_stream:
@@ -32,12 +33,12 @@ class ConsolidationScheduler:
 
     def __init__(
         self,
-        samples_trigger:      int   = 100,
-        quality_threshold:    float = 0.70,
-        min_samples_before:   int   = 20,
+        samples_trigger: int = 100,
+        quality_threshold: float = 0.70,
+        min_samples_before: int = 20,
     ):
-        self.samples_trigger    = samples_trigger
-        self.quality_threshold  = quality_threshold
+        self.samples_trigger = samples_trigger
+        self.quality_threshold = quality_threshold
         self.min_samples_before = min_samples_before
 
         self._samples_since_last: int = 0
@@ -67,8 +68,7 @@ class ConsolidationScheduler:
         if self._samples_since_last >= self.samples_trigger:
             return True
 
-        if (self._last_quality is not None and
-                self._last_quality < self.quality_threshold):
+        if self._last_quality is not None and self._last_quality < self.quality_threshold:
             logger.info(
                 f"Quality {self._last_quality:.3f} < {self.quality_threshold}. "
                 "Triggering consolidation."

@@ -7,6 +7,7 @@ Tests for all 0%-coverage core modules:
   - nesy.version
   - nesy.continual.symbolic_anchor
 """
+
 import pytest
 
 
@@ -14,23 +15,30 @@ import pytest
 #  nesy.core.config
 # ══════════════════════════════════════════════════════════════════
 
+
 class TestNeSyConfig:
     def test_import(self):
         from nesy.core.config import NeSyConfig
+
         assert NeSyConfig is not None
 
     def test_default_instantiation(self):
         from nesy.core.config import NeSyConfig
+
         cfg = NeSyConfig()
         assert cfg is not None
 
     def test_domain_preset_medical(self):
         from nesy.core.config import NeSyConfig
-        cfg = NeSyConfig.for_domain("medical") if hasattr(NeSyConfig, "for_domain") else NeSyConfig()
+
+        cfg = (
+            NeSyConfig.for_domain("medical") if hasattr(NeSyConfig, "for_domain") else NeSyConfig()
+        )
         assert cfg is not None
 
     def test_domain_preset_legal(self):
         from nesy.core.config import NeSyConfig
+
         try:
             cfg = NeSyConfig.for_domain("legal")
         except (AttributeError, TypeError):
@@ -39,6 +47,7 @@ class TestNeSyConfig:
 
     def test_domain_preset_general(self):
         from nesy.core.config import NeSyConfig
+
         try:
             cfg = NeSyConfig.for_domain("general")
         except (AttributeError, TypeError):
@@ -47,6 +56,7 @@ class TestNeSyConfig:
 
     def test_has_expected_attributes(self):
         from nesy.core.config import NeSyConfig
+
         cfg = NeSyConfig()
         # At minimum these should exist
         attrs = dir(cfg)
@@ -55,25 +65,26 @@ class TestNeSyConfig:
 
     def test_config_is_dataclass_or_has_fields(self):
         from nesy.core.config import NeSyConfig
-        import dataclasses
+
         # Either a dataclass or a class with attributes
         cfg = NeSyConfig()
         assert cfg is not None
 
     def test_doubt_threshold_accessible(self):
         from nesy.core.config import NeSyConfig
+
         cfg = NeSyConfig()
         # Try common attribute names
-        threshold = None
         for attr in ["doubt_threshold", "threshold", "confidence_threshold"]:
             if hasattr(cfg, attr):
-                threshold = getattr(cfg, attr)
+                getattr(cfg, attr)
                 break
         # Either found it or config uses a different structure — both ok
         assert cfg is not None
 
     def test_domain_attribute_exists(self):
         from nesy.core.config import NeSyConfig
+
         cfg = NeSyConfig()
         for attr in ["domain", "domain_name", "context_type"]:
             if hasattr(cfg, attr):
@@ -84,6 +95,7 @@ class TestNeSyConfig:
 
     def test_config_repr_or_str(self):
         from nesy.core.config import NeSyConfig
+
         cfg = NeSyConfig()
         # Should not crash on repr
         r = repr(cfg)
@@ -94,20 +106,24 @@ class TestNeSyConfig:
 #  nesy.core.registry
 # ══════════════════════════════════════════════════════════════════
 
+
 class TestRegistry:
     """Tests for nesy.core.registry.Registry (class-level classmethod store)."""
 
     def setup_method(self):
         """Clear shared class-level store before each test to avoid leakage."""
         from nesy.core.registry import Registry
+
         Registry._store.clear()
 
     def test_import(self):
         from nesy.core.registry import Registry
+
         assert Registry is not None
 
     def test_instantiation(self):
         from nesy.core.registry import Registry
+
         reg = Registry()
         assert reg is not None
 
@@ -123,11 +139,12 @@ class TestRegistry:
 
     def test_get_nonexistent_returns_none_or_raises(self):
         from nesy.core.registry import Registry
+
         try:
             result = Registry.get("does_not_exist")
             assert result is None
         except (KeyError, ValueError):
-            pass   # both behaviors are acceptable
+            pass  # both behaviors are acceptable
 
     def test_register_overwrite(self):
         from nesy.core.registry import Registry
@@ -207,13 +224,16 @@ class TestRegistry:
 #  nesy.version
 # ══════════════════════════════════════════════════════════════════
 
+
 class TestVersion:
     def test_import(self):
         import nesy.version as ver
+
         assert ver is not None
 
     def test_version_string_exists(self):
         import nesy.version as ver
+
         # Should have some version info
         for attr in ["__version__", "VERSION", "version", "NESY_VERSION"]:
             if hasattr(ver, attr):
@@ -230,6 +250,7 @@ class TestVersion:
 
     def test_version_format(self):
         import nesy.version as ver
+
         for attr in ["__version__", "VERSION", "version"]:
             if hasattr(ver, attr):
                 v = getattr(ver, attr)
@@ -241,6 +262,7 @@ class TestVersion:
 
     def test_get_version_function(self):
         import nesy.version as ver
+
         for fn_name in ["get_version", "get_version_string", "version_info"]:
             if hasattr(ver, fn_name):
                 result = getattr(ver, fn_name)()
@@ -249,6 +271,7 @@ class TestVersion:
 
     def test_build_info_accessible(self):
         import nesy.version as ver
+
         # Build info might include author, date, etc.
         for attr in ["__author__", "AUTHOR", "BUILD_DATE", "__build__"]:
             if hasattr(ver, attr):
@@ -263,14 +286,17 @@ class TestVersion:
 #  nesy.continual.symbolic_anchor (standalone module)
 # ══════════════════════════════════════════════════════════════════
 
+
 class TestSymbolicAnchorStandalone:
     def test_import(self):
         try:
             from nesy.continual.symbolic_anchor import SymbolicAnchor
+
             assert SymbolicAnchor is not None
         except ImportError:
             # May be re-exported from learner
             from nesy.continual.learner import SymbolicAnchor
+
             assert SymbolicAnchor is not None
 
     def test_add_and_retrieve(self):
@@ -280,6 +306,7 @@ class TestSymbolicAnchorStandalone:
             from nesy.continual.learner import SymbolicAnchor
 
         from nesy.core.types import Predicate, SymbolicRule
+
         anchor = SymbolicAnchor()
         rule = SymbolicRule(
             id="anchor_test",
@@ -299,6 +326,7 @@ class TestSymbolicAnchorStandalone:
             from nesy.continual.learner import SymbolicAnchor
 
         from nesy.core.types import Predicate, SymbolicRule
+
         anchor = SymbolicAnchor()
         assert len(anchor) == 0
         rule = SymbolicRule(
@@ -317,6 +345,7 @@ class TestSymbolicAnchorStandalone:
             from nesy.continual.learner import SymbolicAnchor
 
         from nesy.core.types import Predicate, SymbolicRule
+
         anchor = SymbolicAnchor()
         rule = SymbolicRule(
             id="contains_test",
@@ -336,6 +365,7 @@ class TestSymbolicAnchorStandalone:
 
         from nesy.core.types import Predicate, SymbolicRule
         from nesy.core.exceptions import ContinualLearningConflict
+
         anchor = SymbolicAnchor()
         rule = SymbolicRule(
             id="dup_anchor",
@@ -354,6 +384,7 @@ class TestSymbolicAnchorStandalone:
             from nesy.continual.learner import SymbolicAnchor
 
         from nesy.core.types import Predicate, SymbolicRule
+
         anchor = SymbolicAnchor()
         for i in range(3):
             rule = SymbolicRule(

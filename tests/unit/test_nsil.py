@@ -18,14 +18,10 @@ Test categories (behavioural, not coverage-only):
     7. Monitor integrity coupling to boundary confidence
 """
 
-import math
 import pytest
 
 from nesy.core.types import (
-    ConfidenceReport,
     GroundedSymbol,
-    LogicClause,
-    LogicConnective,
     NullItem,
     NullSet,
     NullType,
@@ -53,6 +49,7 @@ from nesy.neural.nsil import (
 # ═══════════════════════════════════════════════════════════════════
 #  FIXTURES
 # ═══════════════════════════════════════════════════════════════════
+
 
 @pytest.fixture
 def symptom_pred():
@@ -120,6 +117,7 @@ def null_set_with_critical():
 # ═══════════════════════════════════════════════════════════════════
 #  HELPER FUNCTION TESTS
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestClamp01:
     def test_normal_value(self):
@@ -218,6 +216,7 @@ class TestBestProtoSim:
 #  INTEGRITY ITEM / REPORT DATACLASS TESTS
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestIntegrityItem:
     def test_fields(self):
         item = IntegrityItem(
@@ -248,6 +247,7 @@ class TestIntegrityReport:
 # ═══════════════════════════════════════════════════════════════════
 #  CORE compute_integrity_report TESTS
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestPassthroughMode:
     """Symbolic-only mode → neutral integrity, no penalty."""
@@ -282,8 +282,12 @@ class TestStrongEvidence:
     """Grounded evidence strong → no penalty."""
 
     def test_perfect_alignment(
-        self, simple_rule, symptom_pred, diagnosis_pred,
-        grounded_symptom, grounded_diagnosis,
+        self,
+        simple_rule,
+        symptom_pred,
+        diagnosis_pred,
+        grounded_symptom,
+        grounded_diagnosis,
     ):
         """All required predicates grounded with high confidence → score ~1.0."""
         report = compute_integrity_report(
@@ -444,7 +448,11 @@ class TestDeterminism:
     """Determinism (run twice, identical report)."""
 
     def test_identical_reports(
-        self, simple_rule, symptom_pred, grounded_symptom, empty_null_set,
+        self,
+        simple_rule,
+        symptom_pred,
+        grounded_symptom,
+        empty_null_set,
     ):
         kwargs = dict(
             grounded=[grounded_symptom],
@@ -466,8 +474,12 @@ class TestDeterminism:
         assert r1.flags == r2.flags
 
     def test_determinism_with_different_grounding_order(
-        self, simple_rule, symptom_pred, diagnosis_pred,
-        grounded_symptom, grounded_diagnosis,
+        self,
+        simple_rule,
+        symptom_pred,
+        diagnosis_pred,
+        grounded_symptom,
+        grounded_diagnosis,
     ):
         """Reports must be identical regardless of grounded symbol order."""
         r1 = compute_integrity_report(
@@ -488,7 +500,10 @@ class TestNullSetEnrichment:
     """NSIL enrichment with critical null items."""
 
     def test_critical_null_adds_suggestion(
-        self, simple_rule, symptom_pred, null_set_with_critical,
+        self,
+        simple_rule,
+        symptom_pred,
+        null_set_with_critical,
     ):
         report = compute_integrity_report(
             grounded=[],
@@ -499,7 +514,10 @@ class TestNullSetEnrichment:
         assert any("blood_test" in s for s in report.suggestions)
 
     def test_empty_null_set_no_suggestion(
-        self, simple_rule, symptom_pred, empty_null_set,
+        self,
+        simple_rule,
+        symptom_pred,
+        empty_null_set,
     ):
         report = compute_integrity_report(
             grounded=[],
@@ -558,17 +576,20 @@ class TestEdgeCases:
 #  BRIDGE INTEGRATION
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestBridgeAssessIntegrity:
     """NeuralSymbolicBridge.assess_integrity delegates to compute_integrity_report."""
 
     @pytest.fixture
     def bridge(self):
         grounder = SymbolGrounder(threshold=0.7)
-        grounder.register(PredicatePrototype(
-            predicate=Predicate("HasSymptom", ("?p", "fever")),
-            prototype=[1.0, 0.0, 0.0],
-            domain="medical",
-        ))
+        grounder.register(
+            PredicatePrototype(
+                predicate=Predicate("HasSymptom", ("?p", "fever")),
+                prototype=[1.0, 0.0, 0.0],
+                domain="medical",
+            )
+        )
         return NeuralSymbolicBridge(grounder)
 
     def test_returns_report(self, bridge, simple_rule, symptom_pred, grounded_symptom):
@@ -612,6 +633,7 @@ class TestBridgeAssessIntegrity:
 # ═══════════════════════════════════════════════════════════════════
 #  MONITOR INTEGRATION
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestMonitorIntegrityCoupling:
     """MetaCognitionMonitor applies NSIL integrity coupling to boundary."""
@@ -691,7 +713,10 @@ class TestMonitorIntegrityCoupling:
         report = IntegrityReport(
             integrity_score=0.5,
             items=[],
-            flags=["NSIL_LOW_INTEGRITY", "NSIL_WEAK_EVIDENCE: 'X' derived but grounding evidence is 0.05"],
+            flags=[
+                "NSIL_LOW_INTEGRITY",
+                "NSIL_WEAK_EVIDENCE: 'X' derived but grounding evidence is 0.05",
+            ],
             is_neutral=False,
         )
         _, _, _, flags = monitor.evaluate(**minimal_args, integrity_report=report)
@@ -715,17 +740,20 @@ class TestMonitorIntegrityCoupling:
 #  BRIDGE FULL COVERAGE TESTS
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestBridgeNeuralToSymbolic:
     """Cover neural_to_symbolic success and empty paths."""
 
     @pytest.fixture
     def bridge_with_protos(self):
         grounder = SymbolGrounder(threshold=0.7)
-        grounder.register(PredicatePrototype(
-            predicate=Predicate("HasSymptom", ("?p", "fever")),
-            prototype=[1.0, 0.0, 0.0],
-            domain="medical",
-        ))
+        grounder.register(
+            PredicatePrototype(
+                predicate=Predicate("HasSymptom", ("?p", "fever")),
+                prototype=[1.0, 0.0, 0.0],
+                domain="medical",
+            )
+        )
         return NeuralSymbolicBridge(grounder)
 
     def test_success_path(self, bridge_with_protos):
@@ -742,9 +770,7 @@ class TestBridgeNeuralToSymbolic:
         assert conf == 0.0
 
     def test_domain_filter(self, bridge_with_protos):
-        preds, conf = bridge_with_protos.neural_to_symbolic(
-            [1.0, 0.0, 0.0], domain="medical"
-        )
+        preds, conf = bridge_with_protos.neural_to_symbolic([1.0, 0.0, 0.0], domain="medical")
         assert len(preds) >= 1
 
 
@@ -754,10 +780,12 @@ class TestBridgeConstraintGradient:
     @pytest.fixture
     def bridge_with_proto(self):
         grounder = SymbolGrounder(threshold=0.7)
-        grounder.register(PredicatePrototype(
-            predicate=Predicate("Target", ()),
-            prototype=[1.0, 0.0, 0.0],
-        ))
+        grounder.register(
+            PredicatePrototype(
+                predicate=Predicate("Target", ()),
+                prototype=[1.0, 0.0, 0.0],
+            )
+        )
         return NeuralSymbolicBridge(grounder)
 
     def test_no_violated_rules(self, bridge_with_proto):
@@ -773,7 +801,9 @@ class TestBridgeConstraintGradient:
             weight=1.0,
         )
         grad = bridge_with_proto.symbolic_constraint_gradient(
-            [0.0, 0.0, 0.0], [rule], step_size=0.1,
+            [0.0, 0.0, 0.0],
+            [rule],
+            step_size=0.1,
         )
         # Gradient pushes toward [1.0, 0.0, 0.0]
         assert grad[0] > 0.0  # should push toward 1.0
@@ -789,7 +819,9 @@ class TestBridgeConstraintGradient:
             weight=1.0,
         )
         grad = bridge.symbolic_constraint_gradient(
-            [0.5, 0.5, 0.5], [rule], step_size=0.1,
+            [0.5, 0.5, 0.5],
+            [rule],
+            step_size=0.1,
         )
         assert grad == [0.0, 0.0, 0.0]
 

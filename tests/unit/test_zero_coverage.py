@@ -14,6 +14,7 @@ Modules covered:
     core/registry.py           (32 stmts, 0%)
     nesy/version.py            (19 stmts, 0%)
 """
+
 import math
 import pytest
 
@@ -22,36 +23,42 @@ import pytest
 #  symbolic/betti.py  — Betti number β₀ computation
 # ══════════════════════════════════════════════════════════════════
 
+
 class TestBetti:
     """β₀ = number of connected components in predicate argument graph."""
 
     def _betti_module(self):
         from nesy.symbolic import betti as b
+
         return b
 
     def test_import(self):
         from nesy.symbolic import betti
+
         assert betti is not None
 
     def test_single_predicate_one_component(self):
         from nesy.symbolic.betti import betti_0
         from nesy.core.types import Predicate
+
         facts = [Predicate("Fever", ("patient_1",))]
         assert betti_0(facts) == 1
 
     def test_two_connected_predicates(self):
         from nesy.symbolic.betti import betti_0
         from nesy.core.types import Predicate
+
         # Both share "patient_1" → one component
         facts = [
-            Predicate("Fever",    ("patient_1",)),
-            Predicate("Cough",    ("patient_1",)),
+            Predicate("Fever", ("patient_1",)),
+            Predicate("Cough", ("patient_1",)),
         ]
         assert betti_0(facts) == 1
 
     def test_two_disconnected_predicates(self):
         from nesy.symbolic.betti import betti_0
         from nesy.core.types import Predicate
+
         # Different subjects — disconnected
         facts = [
             Predicate("Fever", ("patient_1",)),
@@ -62,21 +69,24 @@ class TestBetti:
     def test_three_predicates_two_components(self):
         from nesy.symbolic.betti import betti_0
         from nesy.core.types import Predicate
+
         facts = [
             Predicate("A", ("x",)),
-            Predicate("B", ("x",)),       # connected to A via "x"
-            Predicate("C", ("y",)),       # isolated — different arg
+            Predicate("B", ("x",)),  # connected to A via "x"
+            Predicate("C", ("y",)),  # isolated — different arg
         ]
         assert betti_0(facts) == 2
 
     def test_empty_facts_returns_zero(self):
         from nesy.symbolic.betti import betti_0
+
         result = betti_0([])
         assert result == 0
 
     def test_transitive_connection(self):
         from nesy.symbolic.betti import betti_0
         from nesy.core.types import Predicate
+
         # A–x, B–x–y, C–y → all connected via x,y chain
         facts = [
             Predicate("A", ("x",)),
@@ -88,6 +98,7 @@ class TestBetti:
     def test_chain_of_three_isolated(self):
         from nesy.symbolic.betti import betti_0
         from nesy.core.types import Predicate
+
         facts = [
             Predicate("A", ("a",)),
             Predicate("B", ("b",)),
@@ -99,6 +110,7 @@ class TestBetti:
         """Variables ?x should NOT be considered shared ground terms."""
         from nesy.symbolic.betti import betti_0
         from nesy.core.types import Predicate
+
         # ?x appears in both but is a variable, not a ground term
         facts = [
             Predicate("A", ("?x",)),
@@ -114,6 +126,7 @@ class TestBetti:
     def test_returns_int(self):
         from nesy.symbolic.betti import betti_0
         from nesy.core.types import Predicate
+
         facts = [Predicate("X", ("a", "b"))]
         result = betti_0(facts)
         assert isinstance(result, int)
@@ -123,15 +136,18 @@ class TestBetti:
 #  metacognition/boundary.py — KNN & Density boundary estimators
 # ══════════════════════════════════════════════════════════════════
 
+
 class TestKNNBoundaryEstimator:
     """C_boundary = 1 / (1 + d_k(q, D_train)), d_k = mean cosine distance to k-NN."""
 
     def test_import(self):
         from nesy.metacognition.boundary import KNNBoundaryEstimator
+
         assert KNNBoundaryEstimator is not None
 
     def test_unfitted_returns_fallback(self):
         from nesy.metacognition.boundary import KNNBoundaryEstimator
+
         est = KNNBoundaryEstimator(k=3)
         query = [1.0, 0.0, 0.0]
         # Should either return fallback or raise — both are acceptable
@@ -143,6 +159,7 @@ class TestKNNBoundaryEstimator:
 
     def test_fit_and_estimate_in_distribution(self):
         from nesy.metacognition.boundary import KNNBoundaryEstimator
+
         # Training data: all vectors pointing in same direction
         training = [
             [1.0, 0.0, 0.0],
@@ -161,6 +178,7 @@ class TestKNNBoundaryEstimator:
 
     def test_fit_and_estimate_out_of_distribution(self):
         from nesy.metacognition.boundary import KNNBoundaryEstimator
+
         training = [
             [1.0, 0.0, 0.0],
             [0.9, 0.1, 0.0],
@@ -176,6 +194,7 @@ class TestKNNBoundaryEstimator:
 
     def test_identical_to_training_point(self):
         from nesy.metacognition.boundary import KNNBoundaryEstimator
+
         training = [
             [1.0, 0.0, 0.0],
             [0.0, 1.0, 0.0],
@@ -191,6 +210,7 @@ class TestKNNBoundaryEstimator:
     def test_confidence_in_unit_range(self):
         from nesy.metacognition.boundary import KNNBoundaryEstimator
         import random
+
         training = [[random.gauss(0, 1) for _ in range(10)] for _ in range(20)]
         est = KNNBoundaryEstimator(k=5)
         est.fit(training)
@@ -201,6 +221,7 @@ class TestKNNBoundaryEstimator:
 
     def test_k_larger_than_training_clamps(self):
         from nesy.metacognition.boundary import KNNBoundaryEstimator
+
         training = [[1.0, 0.0], [0.0, 1.0]]
         est = KNNBoundaryEstimator(k=10)  # k > len(training)
         est.fit(training)
@@ -210,13 +231,14 @@ class TestKNNBoundaryEstimator:
 
 
 class TestDensityBoundaryEstimator:
-
     def test_import(self):
         from nesy.metacognition.boundary import DensityBoundaryEstimator
+
         assert DensityBoundaryEstimator is not None
 
     def test_fit_and_estimate(self):
         from nesy.metacognition.boundary import DensityBoundaryEstimator
+
         training = [
             [1.0, 0.0],
             [0.9, 0.1],
@@ -230,10 +252,11 @@ class TestDensityBoundaryEstimator:
 
     def test_ood_lower_than_in_distribution(self):
         from nesy.metacognition.boundary import DensityBoundaryEstimator
+
         training = [[1.0, 0.0, 0.0]] * 10
         est = DensityBoundaryEstimator(bandwidth=0.1)
         est.fit(training)
-        conf_in  = est.estimate([1.0, 0.0, 0.0])
+        conf_in = est.estimate([1.0, 0.0, 0.0])
         conf_ood = est.estimate([0.0, 0.0, 1.0])
         assert conf_in >= conf_ood
 
@@ -242,15 +265,18 @@ class TestDensityBoundaryEstimator:
 #  neural/backbones/gnn.py — Pure-Python 2-layer GCN
 # ══════════════════════════════════════════════════════════════════
 
+
 class TestSimpleGNNBackbone:
     """GCN: h^(l+1)_v = σ( Σ_{u∈N(v)} (1/√d_v d_u) W^(l) h^(l)_u )"""
 
     def test_import(self):
-        from nesy.neural.backbones.gnn import SimpleGNNBackbone, GraphInput
+        from nesy.neural.backbones.gnn import SimpleGNNBackbone
+
         assert SimpleGNNBackbone is not None
 
     def test_encode_single_node_graph(self):
         from nesy.neural.backbones.gnn import SimpleGNNBackbone, GraphInput
+
         backbone = SimpleGNNBackbone(input_dim=4, hidden_dim=8, output_dim=4)
         graph = GraphInput(
             node_features=[[1.0, 0.0, 0.5, 0.2]],
@@ -262,6 +288,7 @@ class TestSimpleGNNBackbone:
 
     def test_encode_two_node_graph(self):
         from nesy.neural.backbones.gnn import SimpleGNNBackbone, GraphInput
+
         backbone = SimpleGNNBackbone(input_dim=3, hidden_dim=4, output_dim=2)
         graph = GraphInput(
             node_features=[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
@@ -272,6 +299,7 @@ class TestSimpleGNNBackbone:
 
     def test_encode_triangle_graph(self):
         from nesy.neural.backbones.gnn import SimpleGNNBackbone, GraphInput
+
         backbone = SimpleGNNBackbone(input_dim=2, hidden_dim=4, output_dim=3)
         graph = GraphInput(
             node_features=[[1.0, 0.0], [0.0, 1.0], [0.5, 0.5]],
@@ -282,6 +310,7 @@ class TestSimpleGNNBackbone:
 
     def test_confidence_in_unit_range(self):
         from nesy.neural.backbones.gnn import SimpleGNNBackbone, GraphInput
+
         backbone = SimpleGNNBackbone(input_dim=4, hidden_dim=8, output_dim=4)
         graph = GraphInput(
             node_features=[[1.0, 0.5, 0.2, 0.1], [0.3, 0.8, 0.1, 0.4]],
@@ -293,23 +322,27 @@ class TestSimpleGNNBackbone:
 
     def test_embedding_dim_property(self):
         from nesy.neural.backbones.gnn import SimpleGNNBackbone
+
         backbone = SimpleGNNBackbone(input_dim=5, hidden_dim=16, output_dim=8)
         assert backbone.embedding_dim == 8
 
     def test_name_property(self):
         from nesy.neural.backbones.gnn import SimpleGNNBackbone
+
         backbone = SimpleGNNBackbone(input_dim=5, hidden_dim=16, output_dim=8)
         assert isinstance(backbone.name, str)
         assert len(backbone.name) > 0
 
     def test_wrong_input_type_raises(self):
         from nesy.neural.backbones.gnn import SimpleGNNBackbone
+
         backbone = SimpleGNNBackbone(input_dim=4, hidden_dim=8, output_dim=4)
         with pytest.raises(TypeError):
             backbone.encode("not a graph input")
 
     def test_with_edge_weights(self):
         from nesy.neural.backbones.gnn import SimpleGNNBackbone, GraphInput
+
         backbone = SimpleGNNBackbone(input_dim=2, hidden_dim=4, output_dim=2)
         graph = GraphInput(
             node_features=[[1.0, 0.0], [0.0, 1.0]],
@@ -321,6 +354,7 @@ class TestSimpleGNNBackbone:
 
     def test_encode_batch(self):
         from nesy.neural.backbones.gnn import SimpleGNNBackbone, GraphInput
+
         backbone = SimpleGNNBackbone(input_dim=2, hidden_dim=4, output_dim=2)
         graphs = [
             GraphInput([[1.0, 0.0], [0.0, 1.0]], [(0, 1)]),
@@ -336,15 +370,17 @@ class TestSimpleGNNBackbone:
 #  neural/backbones/transformer.py — tests with mock (no GPU needed)
 # ══════════════════════════════════════════════════════════════════
 
-class TestTransformerBackbone:
 
+class TestTransformerBackbone:
     def test_import(self):
         from nesy.neural.backbones.transformer import TransformerBackbone
+
         assert TransformerBackbone is not None
 
     def test_lazy_load_raises_without_dep(self):
         """If sentence_transformers not installed, raises ImportError on use."""
         from nesy.neural.backbones.transformer import TransformerBackbone
+
         backbone = TransformerBackbone()
         # Instantiation should not fail — only loading fails
         assert backbone is not None
@@ -352,6 +388,7 @@ class TestTransformerBackbone:
     def test_confidence_formula_directly(self):
         """Test confidence formula without actually loading the model."""
         from nesy.neural.backbones.transformer import TransformerBackbone
+
         backbone = TransformerBackbone()
         # Test the confidence function directly with mock embedding
         # Confidence = max(0, min(1, 1 - |norm - 1|))
@@ -363,12 +400,14 @@ class TestTransformerBackbone:
 
     def test_confidence_zero_vector(self):
         from nesy.neural.backbones.transformer import TransformerBackbone
+
         backbone = TransformerBackbone()
         conf = backbone.confidence([0.0, 0.0, 0.0])
         assert 0.0 <= conf <= 1.0
 
     def test_confidence_large_norm(self):
         from nesy.neural.backbones.transformer import TransformerBackbone
+
         backbone = TransformerBackbone()
         # Embedding with large norm → |norm-1| is large → low confidence
         conf = backbone.confidence([10.0, 10.0, 10.0])
@@ -376,11 +415,13 @@ class TestTransformerBackbone:
 
     def test_name_property(self):
         from nesy.neural.backbones.transformer import TransformerBackbone
+
         backbone = TransformerBackbone("test-model")
         assert "test-model" in backbone.name
 
     def test_custom_model_name(self):
         from nesy.neural.backbones.transformer import TransformerBackbone
+
         backbone = TransformerBackbone("sentence-transformers/all-mpnet-base-v2")
         assert "all-mpnet-base-v2" in backbone.name
 
@@ -389,16 +430,19 @@ class TestTransformerBackbone:
 #  symbolic/normalizer.py — CNF normalization
 # ══════════════════════════════════════════════════════════════════
 
+
 class TestCNFNormalizer:
     """CNF via: IFF → IMPLIES → De Morgan → distribute OR over AND → flatten."""
 
     def test_import(self):
-        from nesy.symbolic.normalizer import CNFNormalizer, ComplexFormula
+        from nesy.symbolic.normalizer import CNFNormalizer
+
         assert CNFNormalizer is not None
 
     def test_simple_atom_normalizes_to_single_clause(self):
         from nesy.symbolic.normalizer import CNFNormalizer, ComplexFormula
         from nesy.core.types import Predicate
+
         # Single atom: just A → already in CNF
         formula = ComplexFormula.atom(Predicate("A", ("x",)))
         normalizer = CNFNormalizer()
@@ -408,6 +452,7 @@ class TestCNFNormalizer:
     def test_not_atom(self):
         from nesy.symbolic.normalizer import CNFNormalizer, ComplexFormula
         from nesy.core.types import Predicate
+
         formula = ComplexFormula.NOT(ComplexFormula.atom(Predicate("A", ("x",))))
         normalizer = CNFNormalizer()
         clauses = normalizer.to_cnf(formula)
@@ -416,6 +461,7 @@ class TestCNFNormalizer:
     def test_and_of_atoms(self):
         from nesy.symbolic.normalizer import CNFNormalizer, ComplexFormula
         from nesy.core.types import Predicate
+
         a = ComplexFormula.atom(Predicate("A", ("x",)))
         b = ComplexFormula.atom(Predicate("B", ("x",)))
         formula = ComplexFormula.AND(a, b)
@@ -427,6 +473,7 @@ class TestCNFNormalizer:
     def test_or_of_atoms(self):
         from nesy.symbolic.normalizer import CNFNormalizer, ComplexFormula
         from nesy.core.types import Predicate
+
         a = ComplexFormula.atom(Predicate("A", ("x",)))
         b = ComplexFormula.atom(Predicate("B", ("x",)))
         formula = ComplexFormula.OR(a, b)
@@ -439,6 +486,7 @@ class TestCNFNormalizer:
         """A → B becomes ¬A ∨ B in CNF."""
         from nesy.symbolic.normalizer import CNFNormalizer, ComplexFormula
         from nesy.core.types import Predicate
+
         a = ComplexFormula.atom(Predicate("A", ("x",)))
         b = ComplexFormula.atom(Predicate("B", ("x",)))
         formula = ComplexFormula.IMPLIES(a, b)
@@ -451,6 +499,7 @@ class TestCNFNormalizer:
         """A ↔ B becomes (A → B) ∧ (B → A) → (¬A ∨ B) ∧ (¬B ∨ A)."""
         from nesy.symbolic.normalizer import CNFNormalizer, ComplexFormula
         from nesy.core.types import Predicate
+
         a = ComplexFormula.atom(Predicate("A", ("x",)))
         b = ComplexFormula.atom(Predicate("B", ("x",)))
         formula = ComplexFormula.IFF(a, b)
@@ -463,9 +512,10 @@ class TestCNFNormalizer:
         """¬¬A simplifies to A."""
         from nesy.symbolic.normalizer import CNFNormalizer, ComplexFormula
         from nesy.core.types import Predicate
+
         inner = ComplexFormula.atom(Predicate("A", ("x",)))
-        neg1  = ComplexFormula.NOT(inner)
-        neg2  = ComplexFormula.NOT(neg1)
+        neg1 = ComplexFormula.NOT(inner)
+        neg2 = ComplexFormula.NOT(neg1)
         normalizer = CNFNormalizer()
         clauses = normalizer.to_cnf(neg2)
         assert isinstance(clauses, list)
@@ -474,6 +524,7 @@ class TestCNFNormalizer:
         """¬(A ∧ B) → ¬A ∨ ¬B."""
         from nesy.symbolic.normalizer import CNFNormalizer, ComplexFormula
         from nesy.core.types import Predicate
+
         a = ComplexFormula.atom(Predicate("A", ("x",)))
         b = ComplexFormula.atom(Predicate("B", ("x",)))
         and_ab = ComplexFormula.AND(a, b)
@@ -486,6 +537,7 @@ class TestCNFNormalizer:
         """A ∨ (B ∧ C) → (A ∨ B) ∧ (A ∨ C): 2 clauses."""
         from nesy.symbolic.normalizer import CNFNormalizer, ComplexFormula
         from nesy.core.types import Predicate
+
         a = ComplexFormula.atom(Predicate("A", ("x",)))
         b = ComplexFormula.atom(Predicate("B", ("x",)))
         c = ComplexFormula.atom(Predicate("C", ("x",)))
@@ -499,6 +551,7 @@ class TestCNFNormalizer:
     def test_output_is_list_of_frozensets(self):
         from nesy.symbolic.normalizer import CNFNormalizer, ComplexFormula
         from nesy.core.types import Predicate
+
         formula = ComplexFormula.atom(Predicate("A", ("x",)))
         normalizer = CNFNormalizer()
         clauses = normalizer.to_cnf(formula)
@@ -511,21 +564,25 @@ class TestCNFNormalizer:
 #  symbolic/ontology/loader.py — OntologyLoader
 # ══════════════════════════════════════════════════════════════════
 
+
 class TestOntologyLoader:
     """Unified entry point for OWL / RDF / JSON ontology loading."""
 
     def test_import(self):
         from nesy.symbolic.ontology.loader import OntologyLoader
+
         assert OntologyLoader is not None
 
     def test_unsupported_format_raises(self):
         from nesy.symbolic.ontology.loader import OntologyLoader
+
         with pytest.raises((ValueError, KeyError)):
             OntologyLoader.load("ontology.xyz")
 
     def test_load_nesy_json_subclasses(self, tmp_path):
         import json
         from nesy.symbolic.ontology.loader import OntologyLoader
+
         data = {
             "subclasses": [
                 {"child": "Dog", "parent": "Animal"},
@@ -545,6 +602,7 @@ class TestOntologyLoader:
     def test_load_nesy_json_disjoint(self, tmp_path):
         import json
         from nesy.symbolic.ontology.loader import OntologyLoader
+
         data = {
             "subclasses": [],
             "disjoint": [["Bird", "Fish"]],
@@ -559,6 +617,7 @@ class TestOntologyLoader:
     def test_load_nesy_json_property_chain(self, tmp_path):
         import json
         from nesy.symbolic.ontology.loader import OntologyLoader
+
         data = {
             "subclasses": [],
             "disjoint": [],
@@ -579,6 +638,7 @@ class TestOntologyLoader:
 
     def test_load_owl_without_owlready2_returns_empty(self, tmp_path):
         from nesy.symbolic.ontology.loader import OntologyLoader
+
         f = tmp_path / "onto.owl"
         f.write_text("<Ontology/>")
         # If owlready2 not installed → returns []
@@ -590,6 +650,7 @@ class TestOntologyLoader:
 
     def test_load_rdf_without_rdflib_returns_empty(self, tmp_path):
         from nesy.symbolic.ontology.loader import OntologyLoader
+
         f = tmp_path / "onto.ttl"
         f.write_text("@prefix : <http://test.org/> .")
         try:
@@ -602,7 +663,12 @@ class TestOntologyLoader:
         import json
         from nesy.symbolic.ontology.loader import OntologyLoader
         from nesy.core.types import SymbolicRule
-        data = {"subclasses": [{"child": "A", "parent": "B"}], "disjoint": [], "property_chains": []}
+
+        data = {
+            "subclasses": [{"child": "A", "parent": "B"}],
+            "disjoint": [],
+            "property_chains": [],
+        }
         f = tmp_path / "onto.json"
         f.write_text(json.dumps(data))
         rules = OntologyLoader.load(str(f))
@@ -615,19 +681,22 @@ class TestOntologyLoader:
 #  core/config.py — NeSyConfig and sub-configs
 # ══════════════════════════════════════════════════════════════════
 
-class TestNeSyConfig:
 
+class TestNeSyConfig:
     def test_import(self):
         from nesy.core.config import NeSyConfig
+
         assert NeSyConfig is not None
 
     def test_default_instantiation(self):
         from nesy.core.config import NeSyConfig
+
         cfg = NeSyConfig()
         assert cfg.domain == "general"
 
     def test_for_domain_medical(self):
         from nesy.core.config import NeSyConfig
+
         cfg = NeSyConfig.for_domain("medical")
         assert cfg.domain == "medical"
         assert cfg.metacognition.doubt_threshold == 0.70
@@ -635,52 +704,61 @@ class TestNeSyConfig:
 
     def test_for_domain_code(self):
         from nesy.core.config import NeSyConfig
+
         cfg = NeSyConfig.for_domain("code")
         assert cfg.domain == "code"
         assert cfg.nsi.context_thresholds["code"] == 0.20
 
     def test_for_domain_general(self):
         from nesy.core.config import NeSyConfig
+
         cfg = NeSyConfig.for_domain("general")
         assert cfg.domain == "general"
 
     def test_sub_config_symbolic(self):
         from nesy.core.config import NeSyConfig, SymbolicConfig
+
         cfg = NeSyConfig()
         assert isinstance(cfg.symbolic, SymbolicConfig)
         assert cfg.symbolic.max_forward_chain_depth == 50
 
     def test_sub_config_nsi(self):
         from nesy.core.config import NeSyConfig, NSIConfig
+
         cfg = NeSyConfig()
         assert isinstance(cfg.nsi, NSIConfig)
         assert "medical" in cfg.nsi.context_thresholds
 
     def test_sub_config_metacognition(self):
         from nesy.core.config import NeSyConfig, MetaCognitionConfig
+
         cfg = NeSyConfig()
         assert isinstance(cfg.metacognition, MetaCognitionConfig)
         assert cfg.metacognition.doubt_threshold == 0.60
 
     def test_sub_config_continual(self):
         from nesy.core.config import NeSyConfig, ContinualConfig
+
         cfg = NeSyConfig()
         assert isinstance(cfg.continual, ContinualConfig)
         assert cfg.continual.lambda_ewc == 1000.0
 
     def test_sub_config_deployment(self):
         from nesy.core.config import NeSyConfig, DeploymentConfig
+
         cfg = NeSyConfig()
         assert isinstance(cfg.deployment, DeploymentConfig)
         assert cfg.deployment.quantization_bits == 8
 
     def test_default_config_singleton(self):
         from nesy.core.config import DEFAULT_CONFIG
+
         assert DEFAULT_CONFIG is not None
         assert DEFAULT_CONFIG.domain == "general"
 
     def test_config_is_mutable(self):
         from nesy.core.config import NeSyConfig
+
         cfg = NeSyConfig()
         cfg.domain = "medical"
         assert cfg.domain == "medical"
@@ -690,15 +768,18 @@ class TestNeSyConfig:
 #  core/registry.py — Plugin Registry
 # ══════════════════════════════════════════════════════════════════
 
+
 class TestRegistry:
     """Tests for Registry (class-level store — must clear between tests)."""
 
     def setup_method(self):
         from nesy.core.registry import Registry
+
         Registry._store.clear()
 
     def test_import(self):
         from nesy.core.registry import Registry
+
         assert Registry is not None
 
     def test_register_and_get(self):
@@ -712,6 +793,7 @@ class TestRegistry:
 
     def test_get_nonexistent(self):
         from nesy.core.registry import Registry
+
         try:
             result = Registry.get("not_here")
             assert result is None
@@ -776,14 +858,16 @@ class TestRegistry:
 #  nesy/version.py
 # ══════════════════════════════════════════════════════════════════
 
-class TestVersion:
 
+class TestVersion:
     def test_module_imports(self):
         import nesy.version
+
         assert nesy.version is not None
 
     def test_has_version_attribute(self):
         import nesy.version as ver
+
         found = False
         for attr in ["__version__", "VERSION", "version", "NESY_VERSION"]:
             if hasattr(ver, attr):
@@ -795,6 +879,7 @@ class TestVersion:
 
     def test_version_is_string_or_tuple(self):
         import nesy.version as ver
+
         for attr in ["__version__", "VERSION", "version"]:
             if hasattr(ver, attr):
                 v = getattr(ver, attr)
@@ -803,6 +888,7 @@ class TestVersion:
 
     def test_version_string_format(self):
         import nesy.version as ver
+
         for attr in ["__version__", "VERSION", "version"]:
             if hasattr(ver, attr):
                 v = getattr(ver, attr)
@@ -813,6 +899,7 @@ class TestVersion:
 
     def test_get_version_function(self):
         import nesy.version as ver
+
         for fn_name in ["get_version", "get_version_string"]:
             if hasattr(ver, fn_name):
                 result = getattr(ver, fn_name)()

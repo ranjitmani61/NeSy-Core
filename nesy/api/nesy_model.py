@@ -27,11 +27,10 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import math
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set
 
 from nesy.continual.learner import ContinualLearner
 from nesy.core.exceptions import CriticalNullViolation, NeSyError, SymbolicConflict
@@ -52,13 +51,10 @@ from nesy.core.types import (
 from nesy.core.validators import clamp_probability, safe_divide
 from nesy.metacognition.fingerprint import compute_reasoning_fingerprint
 from nesy.metacognition.monitor import MetaCognitionMonitor
-from nesy.neural.nsil import IntegrityReport
 from nesy.nsi.concept_graph import ConceptGraphEngine
 from nesy.symbolic.engine import SymbolicEngine
 from nesy.symbolic.unsat_explanation import (
     enrich_with_null_set,
-    explain_constraint_violations,
-    explain_unsat_core,
     format_contradiction_report,
 )
 
@@ -68,6 +64,7 @@ logger = logging.getLogger(__name__)
 # ═══════════════════════════════════════════════════════════════════
 #  PROOF CAPSULE (PCAP) — serialisable audit packet
 # ═══════════════════════════════════════════════════════════════════
+
 
 @dataclass
 class ProofCapsule:
@@ -90,32 +87,32 @@ class ProofCapsule:
         request_id:  Unique request ID from NSIOutput.
     """
 
-    version:    str
-    domain:     str
-    answer:     str
-    status:     str
+    version: str
+    domain: str
+    answer: str
+    status: str
     confidence: Dict[str, float]
-    steps:      List[Dict[str, Any]]
+    steps: List[Dict[str, Any]]
     null_items: List[Dict[str, Any]]
-    flags:      List[str]
-    checksum:   str
-    timestamp:  str
+    flags: List[str]
+    checksum: str
+    timestamp: str
     request_id: str
     reasoning_fingerprint: str
 
     def to_dict(self) -> Dict[str, Any]:
         """Return plain dict suitable for ``json.dumps()``."""
         return {
-            "version":    self.version,
-            "domain":     self.domain,
-            "answer":     self.answer,
-            "status":     self.status,
+            "version": self.version,
+            "domain": self.domain,
+            "answer": self.answer,
+            "status": self.status,
             "confidence": self.confidence,
-            "steps":      self.steps,
+            "steps": self.steps,
             "null_items": self.null_items,
-            "flags":      self.flags,
-            "checksum":   self.checksum,
-            "timestamp":  self.timestamp,
+            "flags": self.flags,
+            "checksum": self.checksum,
+            "timestamp": self.timestamp,
             "request_id": self.request_id,
             "reasoning_fingerprint": self.reasoning_fingerprint,
         }
@@ -133,6 +130,7 @@ def _compute_pcap_checksum(data: Dict[str, Any]) -> str:
 #  COUNTERFACTUAL FIX (CFG) — minimal hitting-set suggestions
 # ═══════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class CounterfactualFix:
     """A single what-if suggestion.
@@ -144,15 +142,16 @@ class CounterfactualFix:
         explanation:       Human-readable suggestion text.
     """
 
-    missing_concept:  str
+    missing_concept: str
     predicted_uplift: float
     source_null_type: str
-    explanation:      str
+    explanation: str
 
 
 # ═══════════════════════════════════════════════════════════════════
 #  DUAL-CHANNEL VERDICT (DCV)
 # ═══════════════════════════════════════════════════════════════════
+
 
 @dataclass
 class DualChannelVerdict:
@@ -166,16 +165,17 @@ class DualChannelVerdict:
         overall_pass:      True if grade is A or B.
     """
 
-    decision:          str
-    decision_status:   str
-    compliance_grade:  str
+    decision: str
+    decision_status: str
+    compliance_grade: str
     compliance_detail: Dict[str, str]
-    overall_pass:      bool
+    overall_pass: bool
 
 
 # ═══════════════════════════════════════════════════════════════════
 #  TRUST BUDGET (TB)
 # ═══════════════════════════════════════════════════════════════════
+
 
 @dataclass
 class TrustBudgetResult:
@@ -188,15 +188,16 @@ class TrustBudgetResult:
         budget_exceeded:   True if inference was capped by budget.
     """
 
-    output:           NSIOutput
-    cost:             float
+    output: NSIOutput
+    cost: float
     remaining_budget: float
-    budget_exceeded:  bool
+    budget_exceeded: bool
 
 
 # ═══════════════════════════════════════════════════════════════════
 #  CONTRADICTION REPORT — Unsat-Core → Human Explanation output
 # ═══════════════════════════════════════════════════════════════════
+
 
 @dataclass
 class ContradictionReport:
@@ -213,27 +214,27 @@ class ContradictionReport:
         conflicting_rules: Shortcut to the conflicting rule IDs.
     """
 
-    output:            NSIOutput
-    unsat_core:        UnsatCore
-    report:            str
-    fixes:             List["CounterfactualFix"]
+    output: NSIOutput
+    unsat_core: UnsatCore
+    report: str
+    fixes: List["CounterfactualFix"]
     conflicting_rules: List[str]
 
 
 class NeSyModel:
     """The unified NeSy-Core reasoning model.
-    
+
     Composes all five layers into a single, usable object:
         - SymbolicEngine      (logic + rules)
         - ConceptGraphEngine  (NSI null set computation)
         - MetaCognitionMonitor (confidence + self-doubt)
         - ContinualLearner    (no catastrophic forgetting)
-    
+
     Quick start:
         from nesy import NeSyModel, SymbolicRule, Predicate, ConceptEdge
-        
+
         model = NeSyModel(domain="medical")
-        
+
         # Add domain knowledge
         model.add_rule(SymbolicRule(
             id="fever_implies_infection_possible",
@@ -242,29 +243,29 @@ class NeSyModel:
             weight=0.8,
             description="Fever is a common symptom of infection",
         ))
-        
+
         # Add concept relationships for NSI
         model.add_concept_edge(ConceptEdge(
             source="fever", target="blood_test",
             cooccurrence_prob=0.85, causal_strength=1.0, temporal_stability=1.0,
         ))
-        
+
         # Reason
         facts = {Predicate("HasSymptom", ("patient_1", "fever"))}
         output = model.reason(facts=facts, context_type="medical")
-        
+
         print(output.summary())
         print(output.confidence.explanation)
     """
 
     def __init__(
         self,
-        domain:           str   = "general",
-        doubt_threshold:  float = 0.60,
-        strict_mode:      bool  = False,
-        lambda_ewc:       float = 1000.0,
-        shadow_enabled:   bool  = True,
-        shadow_policy:    str   = "none",
+        domain: str = "general",
+        doubt_threshold: float = 0.60,
+        strict_mode: bool = False,
+        lambda_ewc: float = 1000.0,
+        shadow_enabled: bool = True,
+        shadow_policy: str = "none",
         shadow_critical_distance: int = 1,
         shadow_apply_domains: Optional[List[str]] = None,
     ):
@@ -276,9 +277,9 @@ class NeSyModel:
             effective_policy = "flag"
 
         # Initialise all layers
-        self._symbolic  = SymbolicEngine(domain=domain)
-        self._cge       = ConceptGraphEngine(domain=domain)
-        self._monitor   = MetaCognitionMonitor(
+        self._symbolic = SymbolicEngine(domain=domain)
+        self._cge = ConceptGraphEngine(domain=domain)
+        self._monitor = MetaCognitionMonitor(
             doubt_threshold=doubt_threshold,
             strict_mode=strict_mode,
             shadow_enabled=shadow_enabled,
@@ -287,7 +288,7 @@ class NeSyModel:
             shadow_apply_domains=shadow_apply_domains or ["medical", "legal"],
             domain=domain,
         )
-        self._learner   = ContinualLearner(lambda_ewc=lambda_ewc)
+        self._learner = ContinualLearner(lambda_ewc=lambda_ewc)
 
     # ─── KNOWLEDGE LOADING ─────────────────────────────────────────
 
@@ -326,25 +327,25 @@ class NeSyModel:
 
     def reason(
         self,
-        facts:            Set[Predicate],
-        context_type:     str             = "general",
-        neural_confidence: float          = 0.90,
-        raw_input:        Optional[str]   = None,
+        facts: Set[Predicate],
+        context_type: str = "general",
+        neural_confidence: float = 0.90,
+        raw_input: Optional[str] = None,
     ) -> NSIOutput:
         """Main reasoning entry point.
-        
+
         Pipeline:
             1. Forward chain over symbolic rules
             2. Compute null set N(X) via concept graph
             3. Run metacognition monitor
             4. Return NSIOutput with full audit trail
-        
+
         Args:
             facts:             Set of Predicate objects representing known facts
             context_type:      Domain context ("medical", "legal", "code", "general")
             neural_confidence: Confidence from upstream neural model (if any), else 0.9
             raw_input:         Original text/query for trace
-        
+
         Returns:
             NSIOutput with answer, confidence, trace, null_set, status, flags
         """
@@ -379,16 +380,19 @@ class NeSyModel:
         # Each step (except step 0 = initial facts) corresponds to
         # a forward-chain derivation with an associated LogicClause.
         from nesy.core.types import LogicClause, LogicConnective
+
         logic_clauses: List[LogicClause] = []
         for step in reasoning_steps:
             if step.rule_applied is not None:
-                logic_clauses.append(LogicClause(
-                    predicates=step.predicates,
-                    connective=LogicConnective.IMPLIES,
-                    satisfied=True,
-                    weight=step.confidence,
-                    source_rule=step.rule_applied,
-                ))
+                logic_clauses.append(
+                    LogicClause(
+                        predicates=step.predicates,
+                        connective=LogicConnective.IMPLIES,
+                        satisfied=True,
+                        weight=step.confidence,
+                        source_rule=step.rule_applied,
+                    )
+                )
 
         try:
             confidence, trace, status, flags = self._monitor.evaluate(
@@ -417,27 +421,29 @@ class NeSyModel:
             null_set=null_set,
             status=status,
             flags=flags,
-            reasoning_fingerprint=compute_reasoning_fingerprint(output=NSIOutput(
-                answer=answer,
-                confidence=confidence,
-                reasoning_trace=trace,
-                null_set=null_set,
-                status=status,
-                flags=flags,
-            )),
+            reasoning_fingerprint=compute_reasoning_fingerprint(
+                output=NSIOutput(
+                    answer=answer,
+                    confidence=confidence,
+                    reasoning_trace=trace,
+                    null_set=null_set,
+                    status=status,
+                    flags=flags,
+                )
+            ),
         )
 
     def learn(
         self,
-        new_rule:         SymbolicRule,
-        make_anchor:      bool = False,
+        new_rule: SymbolicRule,
+        make_anchor: bool = False,
     ) -> "NeSyModel":
         """Learn a new rule without forgetting existing knowledge.
-        
+
         Args:
             new_rule:    The new SymbolicRule to learn
             make_anchor: If True, make this rule an immutable anchor
-        
+
         If make_anchor=True, this rule joins the permanent
         symbolic store and can never be modified or removed.
         """
@@ -447,19 +453,18 @@ class NeSyModel:
             self._symbolic.add_rule(new_rule)
 
         logger.info(
-            f"Learned new rule: '{new_rule.id}' "
-            f"(anchor={make_anchor}, weight={new_rule.weight})"
+            f"Learned new rule: '{new_rule.id}' (anchor={make_anchor}, weight={new_rule.weight})"
         )
         return self
 
     def explain(self, output: NSIOutput) -> str:
         """Return a human-readable explanation of an NSIOutput.
-        
+
         Useful for debugging, logging, and end-user transparency.
         """
         lines = [
             "=" * 60,
-            f"NeSy-Core Explanation",
+            "NeSy-Core Explanation",
             "=" * 60,
             f"Answer:  {output.answer}",
             f"Status:  {output.status.value.upper()}",
@@ -514,7 +519,7 @@ class NeSyModel:
         original: Set[Predicate],
     ) -> str:
         """Build a human-readable answer from derived facts.
-        
+
         Returns the new facts (derived minus original) as the 'answer'.
         In a full implementation this would use a neural decoder
         to generate natural language.
@@ -533,33 +538,31 @@ class NeSyModel:
     ) -> NSIOutput:
         """Build a REJECTED NSIOutput when hard failure occurs."""
         from nesy.core.types import (
-            ConfidenceReport,
-            NullSet,
-            ReasoningTrace,
             PresentSet,
         )
+
         present_set = PresentSet(
             concepts={p.name for p in facts},
             context_type=context_type,
         )
         null_set = NullSet(items=[], present_set=present_set)
         trace = ReasoningTrace(
-            steps=[ReasoningStep(
-                step_number=0,
-                description=f"Reasoning halted: {reason}",
-                rule_applied=None,
-                predicates=[],
-                confidence=0.0,
-            )],
+            steps=[
+                ReasoningStep(
+                    step_number=0,
+                    description=f"Reasoning halted: {reason}",
+                    rule_applied=None,
+                    predicates=[],
+                    confidence=0.0,
+                )
+            ],
             rules_activated=[],
             neural_confidence=0.0,
             symbolic_confidence=0.0,
             null_violations=[],
             logic_clauses=[],
         )
-        confidence = ConfidenceReport(
-            factual=0.0, reasoning=0.0, knowledge_boundary=0.0
-        )
+        confidence = ConfidenceReport(factual=0.0, reasoning=0.0, knowledge_boundary=0.0)
         rejected = NSIOutput(
             answer="",
             confidence=confidence,
@@ -633,16 +636,16 @@ class NeSyModel:
         }
 
         capsule_data: Dict[str, Any] = {
-            "version":    "1.0",
-            "domain":     self.domain,
-            "answer":     output.answer,
-            "status":     output.status.value,
+            "version": "1.0",
+            "domain": self.domain,
+            "answer": output.answer,
+            "status": output.status.value,
             "confidence": confidence_dict,
-            "steps":      steps,
+            "steps": steps,
             "null_items": null_items,
-            "flags":      list(output.flags),
-            "checksum":   "",
-            "timestamp":  datetime.now(timezone.utc).isoformat(),
+            "flags": list(output.flags),
+            "checksum": "",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "request_id": output.request_id,
             "reasoning_fingerprint": output.reasoning_fingerprint or "",
         }
@@ -652,9 +655,7 @@ class NeSyModel:
         capsule = ProofCapsule(**capsule_data)
 
         if path is not None:
-            Path(path).write_text(
-                json.dumps(capsule.to_dict(), indent=2, sort_keys=True)
-            )
+            Path(path).write_text(json.dumps(capsule.to_dict(), indent=2, sort_keys=True))
             logger.info(f"Proof capsule written: {path}")
 
         return capsule
@@ -733,12 +734,14 @@ class NeSyModel:
                     f"Predicted uplift: +{uplift:.3f}"
                 )
 
-            fixes.append(CounterfactualFix(
-                missing_concept=item.concept,
-                predicted_uplift=uplift,
-                source_null_type=item.null_type.name,
-                explanation=explanation,
-            ))
+            fixes.append(
+                CounterfactualFix(
+                    missing_concept=item.concept,
+                    predicted_uplift=uplift,
+                    source_null_type=item.null_type.name,
+                    explanation=explanation,
+                )
+            )
 
         fixes.sort(key=lambda f: -f.predicted_uplift)
         return fixes
@@ -805,12 +808,14 @@ class NeSyModel:
             concept = ra.get("concept", "")
             # Avoid duplicate concepts already in CFG
             if not any(f.missing_concept == concept for f in cfg_fixes):
-                cfg_fixes.append(CounterfactualFix(
-                    missing_concept=concept,
-                    predicted_uplift=0.0,  # unsat-core repairs are qualitative
-                    source_null_type="UNSAT_CORE",
-                    explanation=ra.get("reason", f"Add '{concept}' to resolve conflict."),
-                ))
+                cfg_fixes.append(
+                    CounterfactualFix(
+                        missing_concept=concept,
+                        predicted_uplift=0.0,  # unsat-core repairs are qualitative
+                        source_null_type="UNSAT_CORE",
+                        explanation=ra.get("reason", f"Add '{concept}' to resolve conflict."),
+                    )
+                )
 
         # ── Format report ──────────────────────────────────────
         report = format_contradiction_report(unsat_core)
@@ -990,9 +995,7 @@ class NeSyModel:
                     f"{edge.temporal_stability}"
                 )
         edge_strs.sort()
-        graph_hash = hashlib.sha256(
-            "\n".join(edge_strs).encode("utf-8")
-        ).hexdigest()
+        graph_hash = hashlib.sha256("\n".join(edge_strs).encode("utf-8")).hexdigest()
 
         return {
             "graph_checksum": graph_hash,

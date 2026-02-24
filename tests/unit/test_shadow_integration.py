@@ -15,22 +15,19 @@ Covers:
     9. End-to-end via NeSyModel.reason() in medical domain
     10. No regression on existing metacognition confidence
 """
+
 from __future__ import annotations
 
-import math
 import pytest
 
 from nesy.core.config import MetaCognitionConfig, NeSyConfig
 from nesy.core.types import (
-    LogicClause,
-    LogicConnective,
     NullItem,
     NullSet,
     NullType,
     OutputStatus,
     Predicate,
     PresentSet,
-    ReasoningStep,
     SymbolicRule,
 )
 from nesy.metacognition.monitor import MetaCognitionMonitor
@@ -39,6 +36,7 @@ from nesy.metacognition.monitor import MetaCognitionMonitor
 # ═══════════════════════════════════════════════════════════════════
 #  HELPERS
 # ═══════════════════════════════════════════════════════════════════
+
 
 def _pred(name: str, *args: str) -> Predicate:
     return Predicate(name=name, args=tuple(args))
@@ -96,6 +94,7 @@ def _evaluate_with_shadow(
 #  1. MEDICAL STRICT + FLAG POLICY
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestShadowFlagPolicy:
     """Shadow distance 1 + policy='flag' → FLAGGED."""
 
@@ -105,8 +104,11 @@ class TestShadowFlagPolicy:
             domain="medical",
         )
         facts = {_pred("HasSymptom", "p", "fever")}
-        rules = [_rule("r1", [_pred("HasSymptom", "?p", "fever")],
-                        [_pred("Diagnosis", "?p", "infection")])]
+        rules = [
+            _rule(
+                "r1", [_pred("HasSymptom", "?p", "fever")], [_pred("Diagnosis", "?p", "infection")]
+            )
+        ]
         derived = facts | {_pred("Diagnosis", "p", "infection")}
 
         status, flags = _evaluate_with_shadow(monitor, facts, derived, rules)
@@ -121,16 +123,23 @@ class TestShadowFlagPolicy:
         )
         # Use critical nulls to force REJECTED from _determine_status
         null_set = NullSet(
-            items=[NullItem(
-                concept="blood_test", weight=0.9,
-                null_type=NullType.TYPE3_CRITICAL,
-                expected_because_of=["fever"], criticality=2.0,
-            )],
+            items=[
+                NullItem(
+                    concept="blood_test",
+                    weight=0.9,
+                    null_type=NullType.TYPE3_CRITICAL,
+                    expected_because_of=["fever"],
+                    criticality=2.0,
+                )
+            ],
             present_set=PresentSet(concepts={"fever"}, context_type="medical"),
         )
         facts = {_pred("HasSymptom", "p", "fever")}
-        rules = [_rule("r1", [_pred("HasSymptom", "?p", "fever")],
-                        [_pred("Diagnosis", "?p", "infection")])]
+        rules = [
+            _rule(
+                "r1", [_pred("HasSymptom", "?p", "fever")], [_pred("Diagnosis", "?p", "infection")]
+            )
+        ]
         derived = facts | {_pred("Diagnosis", "p", "infection")}
 
         _, _, status, flags = monitor.evaluate(
@@ -151,6 +160,7 @@ class TestShadowFlagPolicy:
 #  2. REJECT POLICY
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestShadowRejectPolicy:
     """Shadow distance 1 + policy='reject' → REJECTED."""
 
@@ -160,8 +170,11 @@ class TestShadowRejectPolicy:
             domain="medical",
         )
         facts = {_pred("HasSymptom", "p", "fever")}
-        rules = [_rule("r1", [_pred("HasSymptom", "?p", "fever")],
-                        [_pred("Diagnosis", "?p", "infection")])]
+        rules = [
+            _rule(
+                "r1", [_pred("HasSymptom", "?p", "fever")], [_pred("Diagnosis", "?p", "infection")]
+            )
+        ]
         derived = facts | {_pred("Diagnosis", "p", "infection")}
 
         status, flags = _evaluate_with_shadow(monitor, facts, derived, rules)
@@ -172,14 +185,18 @@ class TestShadowRejectPolicy:
 #  3. NONE POLICY — FLAGS WITHOUT DOWNGRADE
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestShadowNonePolicy:
     """policy='none' → shadow flags present but status unchanged."""
 
     def test_flags_present_status_unchanged(self):
         monitor = _make_monitor(shadow_policy="none", domain="medical")
         facts = {_pred("HasSymptom", "p", "fever")}
-        rules = [_rule("r1", [_pred("HasSymptom", "?p", "fever")],
-                        [_pred("Diagnosis", "?p", "infection")])]
+        rules = [
+            _rule(
+                "r1", [_pred("HasSymptom", "?p", "fever")], [_pred("Diagnosis", "?p", "infection")]
+            )
+        ]
         derived = facts | {_pred("Diagnosis", "p", "infection")}
 
         status, flags = _evaluate_with_shadow(monitor, facts, derived, rules)
@@ -191,6 +208,7 @@ class TestShadowNonePolicy:
 # ═══════════════════════════════════════════════════════════════════
 #  4. NON-DERIVABLE CONCLUSION → distance=∞, NO DOWNGRADE
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestNonDerivableConclusion:
     """If conclusion is not derivable from full facts, distance=∞."""
@@ -214,24 +232,43 @@ class TestNonDerivableConclusion:
 #  5. ROBUST CONCLUSION (d>=5) → NO DOWNGRADE
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestRobustConclusion:
     """Distance >= 5 → no downgrade regardless of policy."""
 
     def test_robust_no_downgrade(self):
         monitor = _make_monitor(shadow_policy="flag", domain="medical")
         facts = {
-            _pred("HasSymptom",  "p", "fever"),
-            _pred("HasLabResult","p", "elevated_wbc"),
-            _pred("HasLabResult","p", "positive_culture"),
-            _pred("HasLabResult","p", "elevated_crp"),
-            _pred("HasVitalSign","p", "tachycardia"),
+            _pred("HasSymptom", "p", "fever"),
+            _pred("HasLabResult", "p", "elevated_wbc"),
+            _pred("HasLabResult", "p", "positive_culture"),
+            _pred("HasLabResult", "p", "elevated_crp"),
+            _pred("HasVitalSign", "p", "tachycardia"),
         }
         rules = [
-            _rule("r1", [_pred("HasSymptom",   "?p","fever")],              [_pred("Diagnosis","?p","infection")]),
-            _rule("r2", [_pred("HasLabResult", "?p","elevated_wbc")],       [_pred("Diagnosis","?p","infection")]),
-            _rule("r3", [_pred("HasLabResult", "?p","positive_culture")],   [_pred("Diagnosis","?p","infection")]),
-            _rule("r4", [_pred("HasLabResult", "?p","elevated_crp")],       [_pred("Diagnosis","?p","infection")]),
-            _rule("r5", [_pred("HasVitalSign", "?p","tachycardia")],        [_pred("Diagnosis","?p","infection")]),
+            _rule(
+                "r1", [_pred("HasSymptom", "?p", "fever")], [_pred("Diagnosis", "?p", "infection")]
+            ),
+            _rule(
+                "r2",
+                [_pred("HasLabResult", "?p", "elevated_wbc")],
+                [_pred("Diagnosis", "?p", "infection")],
+            ),
+            _rule(
+                "r3",
+                [_pred("HasLabResult", "?p", "positive_culture")],
+                [_pred("Diagnosis", "?p", "infection")],
+            ),
+            _rule(
+                "r4",
+                [_pred("HasLabResult", "?p", "elevated_crp")],
+                [_pred("Diagnosis", "?p", "infection")],
+            ),
+            _rule(
+                "r5",
+                [_pred("HasVitalSign", "?p", "tachycardia")],
+                [_pred("Diagnosis", "?p", "infection")],
+            ),
         ]
         derived = facts | {_pred("Diagnosis", "p", "infection")}
 
@@ -244,6 +281,7 @@ class TestRobustConclusion:
 #  6. DOMAIN NOT IN APPLY LIST → NO DOWNGRADE
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestDomainNotInApplyList:
     """Shadow enforcement is domain-scoped."""
 
@@ -254,8 +292,7 @@ class TestDomainNotInApplyList:
             shadow_apply_domains=["medical", "legal"],
         )
         facts = {_pred("HasBug", "module_x")}
-        rules = [_rule("r1", [_pred("HasBug", "?m")],
-                        [_pred("NeedsFix", "?m")])]
+        rules = [_rule("r1", [_pred("HasBug", "?m")], [_pred("NeedsFix", "?m")])]
         derived = facts | {_pred("NeedsFix", "module_x")}
 
         status, flags = _evaluate_with_shadow(monitor, facts, derived, rules)
@@ -276,6 +313,7 @@ class TestDomainNotInApplyList:
 #  7. SHADOW DISABLED → NO FLAGS, NO DOWNGRADE
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestShadowDisabled:
     """shadow_enabled=False → shadow is completely skipped."""
 
@@ -293,6 +331,7 @@ class TestShadowDisabled:
 # ═══════════════════════════════════════════════════════════════════
 #  8. CONFIG PRESETS
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestNeSyConfigPresets:
     """NeSyConfig.for_domain should set shadow defaults."""
@@ -326,6 +365,7 @@ class TestNeSyConfigPresets:
 #  9. END-TO-END VIA NeSyModel.reason()
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestNeSyModelShadowE2E:
     """End-to-end test through the full API."""
 
@@ -334,12 +374,14 @@ class TestNeSyModelShadowE2E:
         from nesy.api.nesy_model import NeSyModel
 
         model = NeSyModel(domain="medical", doubt_threshold=0.50, strict_mode=False)
-        model.add_rule(SymbolicRule(
-            id="fever_diagnosis",
-            antecedents=[Predicate("HasSymptom", ("?p", "fever"))],
-            consequents=[Predicate("Diagnosis", ("?p", "infection"))],
-            weight=0.85,
-        ))
+        model.add_rule(
+            SymbolicRule(
+                id="fever_diagnosis",
+                antecedents=[Predicate("HasSymptom", ("?p", "fever"))],
+                consequents=[Predicate("Diagnosis", ("?p", "infection"))],
+                weight=0.85,
+            )
+        )
 
         facts = {Predicate("HasSymptom", ("patient_1", "fever"))}
         output = model.reason(facts=facts, context_type="medical")
@@ -353,12 +395,14 @@ class TestNeSyModelShadowE2E:
         from nesy.api.nesy_model import NeSyModel
 
         model = NeSyModel(domain="general", doubt_threshold=0.50)
-        model.add_rule(SymbolicRule(
-            id="r1",
-            antecedents=[Predicate("A", ("?x",))],
-            consequents=[Predicate("B", ("?x",))],
-            weight=0.85,
-        ))
+        model.add_rule(
+            SymbolicRule(
+                id="r1",
+                antecedents=[Predicate("A", ("?x",))],
+                consequents=[Predicate("B", ("?x",))],
+                weight=0.85,
+            )
+        )
 
         facts = {Predicate("A", ("val",))}
         output = model.reason(facts=facts, context_type="general")
@@ -377,12 +421,14 @@ class TestNeSyModelShadowE2E:
             strict_mode=False,
             shadow_enabled=False,
         )
-        model.add_rule(SymbolicRule(
-            id="r1",
-            antecedents=[Predicate("A", ("?x",))],
-            consequents=[Predicate("B", ("?x",))],
-            weight=0.85,
-        ))
+        model.add_rule(
+            SymbolicRule(
+                id="r1",
+                antecedents=[Predicate("A", ("?x",))],
+                consequents=[Predicate("B", ("?x",))],
+                weight=0.85,
+            )
+        )
 
         facts = {Predicate("A", ("val",))}
         output = model.reason(facts=facts, context_type="medical")
@@ -392,6 +438,7 @@ class TestNeSyModelShadowE2E:
 # ═══════════════════════════════════════════════════════════════════
 #  10. NO REGRESSION ON EXISTING CONFIDENCE
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestNoRegressionExistingConfidence:
     """Shadow integration must not change confidence computation."""
@@ -449,6 +496,7 @@ class TestNoRegressionExistingConfidence:
 #  11. CUSTOM CRITICAL DISTANCE THRESHOLD
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestCustomThreshold:
     """shadow_critical_distance > 1 raises the bar."""
 
@@ -492,6 +540,7 @@ class TestCustomThreshold:
 # ═══════════════════════════════════════════════════════════════════
 #  12. MONITOR SHADOW POLICY VALIDATION
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestShadowPolicyValidation:
     """Invalid policy should raise."""

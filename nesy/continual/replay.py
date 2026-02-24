@@ -32,12 +32,11 @@ Three strategies provided:
 
 from __future__ import annotations
 
-import math
 import random
 import logging
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, List, Optional, Tuple
 
 from nesy.continual.memory_buffer import EpisodicMemoryBuffer, MemoryItem
 from nesy.core.types import SymbolicRule
@@ -55,6 +54,7 @@ __all__ = [
 # ─────────────────────────────────────────────
 #  ABSTRACT BASE
 # ─────────────────────────────────────────────
+
 
 class ReplayStrategy(ABC):
     """Abstract base class for all replay strategies."""
@@ -76,6 +76,7 @@ class ReplayStrategy(ABC):
 # ─────────────────────────────────────────────
 #  RANDOM REPLAY (Baseline)
 # ─────────────────────────────────────────────
+
 
 class RandomReplay(ReplayStrategy):
     """Uniformly random replay from an episodic memory buffer.
@@ -111,11 +112,13 @@ class RandomReplay(ReplayStrategy):
 #  PRIORITISED REPLAY
 # ─────────────────────────────────────────────
 
+
 @dataclass
 class PrioritisedItem:
     """An item with an associated priority score."""
-    item:     MemoryItem
-    priority: float = 1.0   # |δ| or loss — higher = more important
+
+    item: MemoryItem
+    priority: float = 1.0  # |δ| or loss — higher = more important
 
 
 class PrioritisedReplay(ReplayStrategy):
@@ -139,17 +142,17 @@ class PrioritisedReplay(ReplayStrategy):
 
     def __init__(
         self,
-        max_size: int   = 500,
-        alpha:    float = 0.6,
-        beta:     float = 0.4,
-        epsilon:  float = 1e-6,
+        max_size: int = 500,
+        alpha: float = 0.6,
+        beta: float = 0.4,
+        epsilon: float = 1e-6,
     ) -> None:
         assert 0.0 <= alpha <= 1.0, "alpha must be in [0, 1]"
-        assert 0.0 <= beta  <= 1.0, "beta must be in [0, 1]"
+        assert 0.0 <= beta <= 1.0, "beta must be in [0, 1]"
         self.max_size = max_size
-        self.alpha    = alpha
-        self.beta     = beta
-        self.epsilon  = epsilon
+        self.alpha = alpha
+        self.beta = beta
+        self.epsilon = epsilon
         self._items: List[PrioritisedItem] = []
 
     # ─── ADD / UPDATE ──────────────────────────────────────────────
@@ -185,9 +188,7 @@ class PrioritisedReplay(ReplayStrategy):
         items, _, _ = self.sample_with_weights(n)
         return items
 
-    def sample_with_weights(
-        self, n: int
-    ) -> Tuple[List[MemoryItem], List[float], List[int]]:
+    def sample_with_weights(self, n: int) -> Tuple[List[MemoryItem], List[float], List[int]]:
         """Sample *n* items and return IS weights and indices.
 
         Returns:
@@ -201,9 +202,9 @@ class PrioritisedReplay(ReplayStrategy):
         n = min(n, len(self._items))
 
         # Compute sampling probabilities: P(i) = pᵢᵅ / Σ pⱼᵅ
-        powered = [it.priority ** self.alpha for it in self._items]
-        total   = sum(powered)
-        probs   = [p / total for p in powered]
+        powered = [it.priority**self.alpha for it in self._items]
+        total = sum(powered)
+        probs = [p / total for p in powered]
 
         # Weighted sampling without replacement via sequential draws
         indices = self._weighted_sample_indices(probs, n)
@@ -272,6 +273,7 @@ class PrioritisedReplay(ReplayStrategy):
 #  SYMBOLIC ANCHOR REPLAY
 # ─────────────────────────────────────────────
 
+
 class SymbolicAnchorReplay(ReplayStrategy):
     """Replay strategy that always includes symbolic anchors.
 
@@ -299,7 +301,7 @@ class SymbolicAnchorReplay(ReplayStrategy):
 
     def __init__(
         self,
-        anchor: Any,   # SymbolicAnchor — typed as Any to avoid circular import
+        anchor: Any,  # SymbolicAnchor — typed as Any to avoid circular import
         buffer: Optional[EpisodicMemoryBuffer] = None,
         anchor_task_id: str = "__symbolic_anchor__",
     ) -> None:

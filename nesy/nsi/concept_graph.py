@@ -5,7 +5,7 @@ Concept Graph Engine (CGE) — the world model for Negative Space Intelligence.
 
 Mathematical basis:
     G = (V, E, W) directed weighted graph
-    
+
     V = concept nodes (strings)
     E = directed edges (source → target)
     W: E → [0,1]   edge weight formula:
@@ -27,7 +27,7 @@ import json
 import logging
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, FrozenSet, Iterator, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from nesy.core.types import ConceptEdge, NullItem, NullType, PresentSet, NullSet
 
@@ -37,28 +37,35 @@ logger = logging.getLogger(__name__)
 # Medical reasoning requires high causal certainty → higher threshold
 # General conversation allows looser expected associations → lower threshold
 CONTEXT_THRESHOLDS: Dict[str, float] = {
-    "medical":  0.35,
-    "legal":    0.30,
-    "code":     0.25,
-    "general":  0.15,
+    "medical": 0.35,
+    "legal": 0.30,
+    "code": 0.25,
+    "general": 0.15,
 }
 
 # Criticality multipliers per domain-specific concept class
 CRITICAL_CONCEPT_CLASSES: Dict[str, Set[str]] = {
     "medical": {
-        "vital_signs", "medication", "allergy", "contraindication",
-        "emergency_symptom", "diagnostic_test",
+        "vital_signs",
+        "medication",
+        "allergy",
+        "contraindication",
+        "emergency_symptom",
+        "diagnostic_test",
     },
     "code": {
-        "null_check", "error_handling", "input_validation",
-        "authentication", "authorization",
+        "null_check",
+        "error_handling",
+        "input_validation",
+        "authentication",
+        "authorization",
     },
 }
 
 
 class ConceptGraphEngine:
     """Build, store, and query the weighted concept graph.
-    
+
     This is the persistent world-model: built once, queried many times.
     Supports incremental updates without full rebuild.
     """
@@ -67,7 +74,7 @@ class ConceptGraphEngine:
         self.domain = domain
         # Adjacency: source → {target → ConceptEdge}
         self._graph: Dict[str, Dict[str, ConceptEdge]] = defaultdict(dict)
-        self._concept_classes: Dict[str, str] = {}     # concept → class label
+        self._concept_classes: Dict[str, str] = {}  # concept → class label
         self._total_concepts: int = 0
 
     # ─── GRAPH CONSTRUCTION ────────────────────────────────────────
@@ -83,7 +90,7 @@ class ConceptGraphEngine:
 
     def register_concept_class(self, concept: str, class_label: str) -> None:
         """Register a concept as belonging to a critical class.
-        
+
         Example: register_concept_class("blood_pressure", "vital_signs")
         This makes 'blood_pressure' a Type3 critical null in medical context.
         """
@@ -110,7 +117,7 @@ class ConceptGraphEngine:
         threshold: float,
     ) -> List[Tuple[str, float]]:
         """Get all concepts reachable from 'concept' with weight > threshold.
-        
+
         Returns list of (neighbor_concept, edge_weight) pairs,
         sorted by weight descending.
         """
@@ -128,7 +135,7 @@ class ConceptGraphEngine:
 
     def compute_null_set(self, present_set: PresentSet) -> NullSet:
         """Core NSI computation: N(X) = E(X) − P(X).
-        
+
         Algorithm:
             1. For each concept c in P(X):
                collect all neighbors above context threshold
@@ -137,13 +144,13 @@ class ConceptGraphEngine:
                take the maximum edge weight — strongest expectation wins)
             3. Subtract P(X) to get N(X)
             4. Classify each item in N(X) as Type 1/2/3
-        
+
         Time: O(|P(X)| × k) where k = average out-degree
         """
         threshold = CONTEXT_THRESHOLDS.get(present_set.context_type, 0.15)
 
         # Step 1 & 2: Build Expected Set with max weights
-        expected: Dict[str, Dict] = {}   # concept → {weight, triggered_by}
+        expected: Dict[str, Dict] = {}  # concept → {weight, triggered_by}
 
         for concept in present_set.concepts:
             neighbors = self.get_neighbors(concept, threshold)
@@ -168,13 +175,15 @@ class ConceptGraphEngine:
             )
             criticality = self._get_criticality(concept, present_set.context_type)
 
-            null_items.append(NullItem(
-                concept=concept,
-                weight=info["weight"],
-                null_type=null_type,
-                expected_because_of=info["triggered_by"],
-                criticality=criticality,
-            ))
+            null_items.append(
+                NullItem(
+                    concept=concept,
+                    weight=info["weight"],
+                    null_type=null_type,
+                    expected_because_of=info["triggered_by"],
+                    criticality=criticality,
+                )
+            )
 
         # Sort: Type3 first, then Type2, then Type1
         null_items.sort(key=lambda x: (-x.null_type.value, -x.weight))
@@ -189,16 +198,16 @@ class ConceptGraphEngine:
         present_concepts: Set[str],
     ) -> NullType:
         """Classify an absent concept as Type1 / Type2 / Type3.
-        
+
         Classification logic:
-        
+
         Type3 (Critical): The absent concept belongs to a critical class
                           for the current domain. Its absence MUST be addressed.
                           e.g., missing vital signs in a medical context.
-        
+
         Type2 (Meaningful): High edge weight (≥ 0.6 × threshold × 10)
                             but not in a critical class. Should be investigated.
-        
+
         Type1 (Expected):  Low weight OR ubiquitous background concept.
                           Normal absence — do not flag.
         """
@@ -249,13 +258,15 @@ class ConceptGraphEngine:
         data = json.loads(Path(path).read_text())
         cge = cls(domain=data["domain"])
         for ed in data["edges"]:
-            cge.add_edge(ConceptEdge(
-                source=ed["source"],
-                target=ed["target"],
-                cooccurrence_prob=ed["cooccurrence_prob"],
-                causal_strength=ed["causal_strength"],
-                temporal_stability=ed["temporal_stability"],
-            ))
+            cge.add_edge(
+                ConceptEdge(
+                    source=ed["source"],
+                    target=ed["target"],
+                    cooccurrence_prob=ed["cooccurrence_prob"],
+                    causal_strength=ed["causal_strength"],
+                    temporal_stability=ed["temporal_stability"],
+                )
+            )
         cge._concept_classes = data.get("concept_classes", {})
         logger.info(f"Concept graph loaded: {len(data['edges'])} edges from {path}")
         return cge

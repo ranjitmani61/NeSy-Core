@@ -16,6 +16,7 @@ from typing import NamedTuple
 
 class VersionInfo(NamedTuple):
     """Structured version information."""
+
     major: int
     minor: int
     patch: int

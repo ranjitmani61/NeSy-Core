@@ -10,22 +10,23 @@ from any specific ML framework (PyTorch, JAX, etc.).
 Mathematical contract:
     encode(input) → embedding ∈ ℝᵈ
     confidence(embedding) → scalar ∈ [0,1]
-    
+
 The bridge.py module uses these two outputs to:
     1. Ground the embedding to symbolic predicates
     2. Feed neural confidence into MetaCognitionMonitor
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List
 
 
 class NeSyBackbone(ABC):
     """Abstract neural backbone interface.
-    
+
     Implementors: TransformerBackbone, GNNBackbone, custom models.
-    
+
     Contract:
         - encode() must return a list of floats (framework-agnostic)
         - confidence() must return a float in [0, 1]
@@ -35,10 +36,10 @@ class NeSyBackbone(ABC):
     @abstractmethod
     def encode(self, input_data: Any) -> List[float]:
         """Encode input into a fixed-dimensional embedding vector.
-        
+
         Args:
             input_data: Raw input (text string, token list, image tensor, etc.)
-        
+
         Returns:
             List of floats representing the embedding.
             Dimensionality must be consistent for a given backbone instance.
@@ -48,12 +49,12 @@ class NeSyBackbone(ABC):
     @abstractmethod
     def confidence(self, embedding: List[float]) -> float:
         """Estimate the model's confidence in its encoding.
-        
+
         This is NOT the task-specific prediction confidence.
         It is the backbone's estimate of how well it understood the input:
             - Is this input in-distribution?
             - Is the embedding geometrically stable?
-        
+
         Returns: float ∈ [0, 1]
         """
         ...
@@ -77,7 +78,7 @@ class NeSyBackbone(ABC):
 
 class PassthroughBackbone(NeSyBackbone):
     """Minimal backbone for testing: passes through pre-computed embeddings.
-    
+
     Useful when embeddings are computed externally (e.g., from OpenAI API)
     and you only need the symbolic + NSI layers of NeSy-Core.
     """
@@ -96,6 +97,7 @@ class PassthroughBackbone(NeSyBackbone):
         Well-formed embeddings cluster around unit norm.
         """
         import math
+
         norm = math.sqrt(sum(x * x for x in embedding))
         # Map norm to [0,1]: norm ≈ 1.0 → confidence ≈ 1.0
         return min(1.0, norm)

@@ -10,9 +10,10 @@ Usage:
     with nesy.domain("medical"):
         output = model.reason(facts)   # uses medical thresholds
 """
+
 from __future__ import annotations
 from contextlib import contextmanager
-from typing import Generator, Optional
+from typing import Generator
 
 
 @contextmanager

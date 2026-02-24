@@ -19,14 +19,15 @@ Usage:
     # Use with a LangChain agent
     result = tool._run('{"facts": [{"name": "HasSymptom", "args": ["p1", "fever"]}]}')
 """
+
 from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, List, Optional, Set, Type
+from typing import Any, Dict, Set
 
 from nesy.api.nesy_model import NeSyModel
-from nesy.core.types import NSIOutput, Predicate
+from nesy.core.types import Predicate
 
 logger = logging.getLogger(__name__)
 
@@ -73,9 +74,7 @@ class NeSyReasoningTool:
 
     def __init__(self, model: NeSyModel) -> None:
         if not isinstance(model, NeSyModel):
-            raise TypeError(
-                f"model must be a NeSyModel, got {type(model).__name__}"
-            )
+            raise TypeError(f"model must be a NeSyModel, got {type(model).__name__}")
         self._model = model
         logger.info("NeSyReasoningTool initialised.")
 
@@ -132,17 +131,19 @@ class NeSyReasoningTool:
                 neural_confidence=neural_confidence,
             )
 
-            return json.dumps({
-                "answer": output.answer,
-                "status": output.status.value,
-                "confidence": output.confidence.minimum,
-                "factual": output.confidence.factual,
-                "reasoning": output.confidence.reasoning,
-                "boundary": output.confidence.knowledge_boundary,
-                "trustworthy": output.is_trustworthy(),
-                "critical_nulls": len(output.null_set.critical_items),
-                "flags": output.flags,
-            })
+            return json.dumps(
+                {
+                    "answer": output.answer,
+                    "status": output.status.value,
+                    "confidence": output.confidence.minimum,
+                    "factual": output.confidence.factual,
+                    "reasoning": output.confidence.reasoning,
+                    "boundary": output.confidence.knowledge_boundary,
+                    "trustworthy": output.is_trustworthy(),
+                    "critical_nulls": len(output.null_set.critical_items),
+                    "flags": output.flags,
+                }
+            )
         except Exception as e:
             logger.error("NeSy reasoning error: %s", e, exc_info=True)
             return json.dumps({"error": f"NeSy reasoning error: {e}"})

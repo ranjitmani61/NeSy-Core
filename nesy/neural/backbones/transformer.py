@@ -5,6 +5,7 @@ Transformer backbone wrapper for NeSy-Core.
 Wraps HuggingFace sentence-transformers for embedding.
 Requires: pip install transformers sentence-transformers
 """
+
 from __future__ import annotations
 
 import logging
@@ -18,10 +19,10 @@ logger = logging.getLogger(__name__)
 
 class TransformerBackbone(NeSyBackbone):
     """HuggingFace transformer backbone.
-    
+
     Produces sentence/document embeddings via mean pooling
     over the last hidden state.
-    
+
     Default model: 'sentence-transformers/all-MiniLM-L6-v2'
     (384-dim, fast, good quality for symbolic grounding tasks)
     """
@@ -37,13 +38,13 @@ class TransformerBackbone(NeSyBackbone):
         if self._model is None:
             try:
                 from sentence_transformers import SentenceTransformer
+
                 self._model = SentenceTransformer(self._model_name)
                 self._dim = self._model.get_sentence_embedding_dimension()
                 logger.info(f"Loaded transformer backbone: {self._model_name} (dim={self._dim})")
             except ImportError:
                 raise ImportError(
-                    "sentence-transformers not installed. "
-                    "pip install sentence-transformers"
+                    "sentence-transformers not installed. pip install sentence-transformers"
                 )
 
     def encode(self, input_data: Any) -> List[float]:
@@ -65,7 +66,7 @@ class TransformerBackbone(NeSyBackbone):
 
     def confidence(self, embedding: List[float]) -> float:
         """Confidence via embedding norm stability.
-        
+
         Well-formed sentence embeddings from this model cluster
         around norm ≈ 1.0 (they are approximately normalised).
         """

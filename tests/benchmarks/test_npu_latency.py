@@ -6,6 +6,7 @@ Latency benchmarks for the NPU inference path.
 Target: < 200 ms per inference on NPU hardware.
 Uses CPU fallback for CI (NPUBackboneWrapper delegates to base backbone).
 """
+
 import time
 import pytest
 from nesy.deployment.npu import NPUBackboneWrapper

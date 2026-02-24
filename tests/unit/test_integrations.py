@@ -10,18 +10,21 @@ External dependencies (LangChain, OpenAI client, PyTorch Lightning) are
 either mocked or skipped when unavailable.  NeSyModel itself is real —
 these tests exercise the full NeSy integration path.
 """
+
 from __future__ import annotations
 
 import asyncio
 import json
 from types import SimpleNamespace
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from nesy.api.nesy_model import NeSyModel
 from nesy.core.types import ConceptEdge, Predicate, SymbolicRule
+from nesy.integrations.langchain import NeSyReasoningTool
+from nesy.integrations.openai import NeSyOpenAIWrapper
+from nesy.integrations.pytorch_lightning import NeSyLightningModule, PL_AVAILABLE
 
 # ═══════════════════════════════════════════════════════════════════
 #  Shared helpers
@@ -60,11 +63,9 @@ def _make_model() -> NeSyModel:
 # ═══════════════════════════════════════════════════════════════════
 #  LangChain integration — NeSyReasoningTool
 # ═══════════════════════════════════════════════════════════════════
-from nesy.integrations.langchain import NeSyReasoningTool
 
 
 class TestNeSyReasoningToolInit:
-
     def test_valid_model(self):
         model = _make_model()
         tool = NeSyReasoningTool(model)
@@ -81,18 +82,19 @@ class TestNeSyReasoningToolInit:
 
 
 class TestNeSyReasoningToolRun:
-
     @pytest.fixture
     def tool(self):
         return NeSyReasoningTool(_make_model())
 
     def test_valid_json_returns_answer(self, tool):
-        inp = json.dumps({
-            "facts": [
-                {"name": "HasSymptom", "args": ["p1", "fever"]},
-                {"name": "HasLabResult", "args": ["p1", "elevated_wbc"]},
-            ]
-        })
+        inp = json.dumps(
+            {
+                "facts": [
+                    {"name": "HasSymptom", "args": ["p1", "fever"]},
+                    {"name": "HasLabResult", "args": ["p1", "elevated_wbc"]},
+                ]
+            }
+        )
         result = json.loads(tool._run(inp))
         assert "answer" in result
         assert "confidence" in result
@@ -114,54 +116,62 @@ class TestNeSyReasoningToolRun:
         assert "answer" in result  # empty facts → still produces output
 
     def test_custom_context_type(self, tool):
-        inp = json.dumps({
-            "facts": [{"name": "A", "args": ["x"]}],
-            "context_type": "legal",
-        })
+        inp = json.dumps(
+            {
+                "facts": [{"name": "A", "args": ["x"]}],
+                "context_type": "legal",
+            }
+        )
         result = json.loads(tool._run(inp))
         assert "answer" in result
 
     def test_custom_neural_confidence(self, tool):
-        inp = json.dumps({
-            "facts": [{"name": "A", "args": ["x"]}],
-            "neural_confidence": 0.75,
-        })
+        inp = json.dumps(
+            {
+                "facts": [{"name": "A", "args": ["x"]}],
+                "neural_confidence": 0.75,
+            }
+        )
         result = json.loads(tool._run(inp))
         assert "answer" in result
 
     def test_neural_confidence_clamped_high(self, tool):
-        inp = json.dumps({
-            "facts": [{"name": "A", "args": ["x"]}],
-            "neural_confidence": 5.0,
-        })
+        inp = json.dumps(
+            {
+                "facts": [{"name": "A", "args": ["x"]}],
+                "neural_confidence": 5.0,
+            }
+        )
         result = json.loads(tool._run(inp))
         assert "answer" in result  # should not crash
 
     def test_neural_confidence_clamped_low(self, tool):
-        inp = json.dumps({
-            "facts": [{"name": "A", "args": ["x"]}],
-            "neural_confidence": -3.0,
-        })
+        inp = json.dumps(
+            {
+                "facts": [{"name": "A", "args": ["x"]}],
+                "neural_confidence": -3.0,
+            }
+        )
         result = json.loads(tool._run(inp))
         assert "answer" in result
 
     def test_fact_missing_name_skipped(self, tool):
         """Fact with no 'name' key should be skipped, not crash."""
-        inp = json.dumps({
-            "facts": [
-                {"args": ["x"]},                          # missing name
-                {"name": "B", "args": ["y"]},             # valid
-            ]
-        })
+        inp = json.dumps(
+            {
+                "facts": [
+                    {"args": ["x"]},  # missing name
+                    {"name": "B", "args": ["y"]},  # valid
+                ]
+            }
+        )
         result = json.loads(tool._run(inp))
         assert "answer" in result
         assert "error" not in result
 
     def test_fact_with_no_args(self, tool):
         """Fact with name but no args → args defaults to ()."""
-        inp = json.dumps({
-            "facts": [{"name": "SomeFact"}]
-        })
+        inp = json.dumps({"facts": [{"name": "SomeFact"}]})
         result = json.loads(tool._run(inp))
         assert "answer" in result
 
@@ -174,7 +184,6 @@ class TestNeSyReasoningToolRun:
 
 
 class TestNeSyReasoningToolAsync:
-
     def test_arun_delegates_to_run(self):
         tool = NeSyReasoningTool(_make_model())
         inp = json.dumps({"facts": [{"name": "X", "args": ["a"]}]})
@@ -184,7 +193,6 @@ class TestNeSyReasoningToolAsync:
 
 
 class TestNeSyReasoningToolArgsSchema:
-
     def test_args_schema_structure(self):
         tool = NeSyReasoningTool(_make_model())
         schema = tool.args_schema
@@ -196,7 +204,6 @@ class TestNeSyReasoningToolArgsSchema:
 # ═══════════════════════════════════════════════════════════════════
 #  OpenAI integration — NeSyOpenAIWrapper
 # ═══════════════════════════════════════════════════════════════════
-from nesy.integrations.openai import NeSyOpenAIWrapper
 
 
 def _mock_openai_response(
@@ -215,7 +222,6 @@ def _mock_openai_response(
 
 
 class TestNeSyOpenAIWrapperInit:
-
     def test_valid_init(self):
         client = _mock_openai_response()
         model = _make_model()
@@ -228,7 +234,6 @@ class TestNeSyOpenAIWrapperInit:
 
 
 class TestNeSyOpenAIChatWithReasoning:
-
     @pytest.fixture
     def wrapper(self):
         return NeSyOpenAIWrapper(_mock_openai_response(), _make_model())
@@ -278,11 +283,9 @@ class TestNeSyOpenAIChatWithReasoning:
 # ═══════════════════════════════════════════════════════════════════
 #  PyTorch Lightning integration — NeSyLightningModule
 # ═══════════════════════════════════════════════════════════════════
-from nesy.integrations.pytorch_lightning import NeSyLightningModule, PL_AVAILABLE
 
 
 class TestPLAvailability:
-
     def test_is_available_returns_bool(self):
         assert isinstance(NeSyLightningModule.is_available(), bool)
 
@@ -326,11 +329,13 @@ class TestPLBuild:
     @staticmethod
     def _make_learner():
         from nesy.continual.learner import ContinualLearner
+
         return ContinualLearner(lambda_ewc=1000.0)
 
     @staticmethod
     def _loss_fn(output, target):
         import torch
+
         return torch.nn.functional.mse_loss(output, target)
 
     def test_build_returns_lightning_module(self):
@@ -343,7 +348,9 @@ class TestPLBuild:
 
     def test_build_custom_lr(self):
         module = NeSyLightningModule.build(
-            self._make_backbone(), self._make_learner(), self._loss_fn,
+            self._make_backbone(),
+            self._make_learner(),
+            self._loss_fn,
             learning_rate=1e-3,
         )
         optim = module.configure_optimizers()
@@ -390,6 +397,7 @@ class TestPLBuildImportError:
     def test_build_raises_when_pl_missing(self):
         """Simulate PL not being importable."""
         import builtins
+
         real_import = builtins.__import__
 
         def mock_import(name, *args, **kwargs):

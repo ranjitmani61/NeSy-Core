@@ -6,7 +6,7 @@ CNF (Conjunctive Normal Form) Normalizer for symbolic rules.
 Before resolution-based reasoning, all rules must be in CNF:
     CNF: conjunction of disjunctions
     e.g. (A ∨ B) ∧ (¬C ∨ D) ∧ E
-    
+
 Conversion steps (Tseitin transformation + simplification):
     1. Eliminate biconditionals (A ↔ B → (A→B) ∧ (B→A))
     2. Eliminate implications (A → B → ¬A ∨ B)
@@ -18,19 +18,20 @@ For NeSy-Core:
     Rules are in implication form: A₁ ∧ A₂ → C₁ ∧ C₂
     CNF: ¬A₁ ∨ ¬A₂ ∨ C₁  and  ¬A₁ ∨ ¬A₂ ∨ C₂
     (handled by rule_to_clause in logic.py for simple rules)
-    
+
 This module handles COMPLEX rules with disjunctive antecedents,
 nested implications, and biconditionals — rare in practice but
 needed for legal and scientific knowledge bases.
 """
+
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import FrozenSet, List, Optional, Set, Tuple
+from typing import FrozenSet, List, Optional
 
 from nesy.core.types import LogicConnective, Predicate, SymbolicRule
-from nesy.symbolic.logic import negate_predicate, rule_to_clause
+from nesy.symbolic.logic import negate_predicate
 
 logger = logging.getLogger(__name__)
 
@@ -38,18 +39,19 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ComplexFormula:
     """A formula that may contain nested logical structure.
-    
+
     This goes beyond SymbolicRule which only supports simple implications.
     Used for: disjunctive rules, nested implications, biconditionals.
-    
+
     Representation:
         predicate: leaf node (atomic formula)
         connective: logical operator for this node
         children:  sub-formulas
     """
-    predicate:  Optional[Predicate] = None     # leaf
+
+    predicate: Optional[Predicate] = None  # leaf
     connective: Optional[LogicConnective] = None  # internal node
-    children:   List["ComplexFormula"] = None
+    children: List["ComplexFormula"] = None
 
     def __post_init__(self):
         if self.children is None:
@@ -72,7 +74,9 @@ class ComplexFormula:
         return cls(connective=LogicConnective.OR, children=list(formulas))
 
     @classmethod
-    def IMPLIES(cls, antecedent: "ComplexFormula", consequent: "ComplexFormula") -> "ComplexFormula":
+    def IMPLIES(
+        cls, antecedent: "ComplexFormula", consequent: "ComplexFormula"
+    ) -> "ComplexFormula":
         return cls(connective=LogicConnective.IMPLIES, children=[antecedent, consequent])
 
     @classmethod
@@ -85,23 +89,23 @@ class ComplexFormula:
 
 class CNFNormalizer:
     """Convert complex formulas to Conjunctive Normal Form.
-    
+
     Usage:
         norm = CNFNormalizer()
-        
+
         # Complex rule: A → (B ↔ C)
         formula = ComplexFormula.IMPLIES(
             ComplexFormula.atom(A),
             ComplexFormula.IFF(ComplexFormula.atom(B), ComplexFormula.atom(C))
         )
-        
+
         cnf_clauses = norm.to_cnf(formula)
         # Returns list of frozenset[Predicate] — ready for resolution
     """
 
     def to_cnf(self, formula: ComplexFormula) -> List[FrozenSet[Predicate]]:
         """Convert a ComplexFormula to CNF clauses.
-        
+
         Returns list of clauses. Each clause is a frozenset of Predicates
         (interpreted as disjunction). The full formula is conjunction of clauses.
         """
@@ -118,7 +122,7 @@ class CNFNormalizer:
 
     def simple_rule_to_clauses(self, rule: SymbolicRule) -> List[FrozenSet[Predicate]]:
         """Convert a standard SymbolicRule to CNF clauses (fast path).
-        
+
         For simple rules (conjunctive antecedent → conjunctive consequent),
         each consequent gets its own clause:
             ¬A₁ ∨ ¬A₂ ∨ ... ∨ Cᵢ
@@ -199,15 +203,9 @@ class CNFNormalizer:
     def _distribute_or_over_and(self, a: ComplexFormula, b: ComplexFormula) -> ComplexFormula:
         """(A ∨ (B ∧ C)) → (A ∨ B) ∧ (A ∨ C)"""
         if b.connective == LogicConnective.AND:
-            return ComplexFormula.AND(*[
-                self._distribute_or_over_and(a, bc)
-                for bc in b.children
-            ])
+            return ComplexFormula.AND(*[self._distribute_or_over_and(a, bc) for bc in b.children])
         if a.connective == LogicConnective.AND:
-            return ComplexFormula.AND(*[
-                self._distribute_or_over_and(ac, b)
-                for ac in a.children
-            ])
+            return ComplexFormula.AND(*[self._distribute_or_over_and(ac, b) for ac in a.children])
         return ComplexFormula.OR(a, b)
 
     # ── Step 5: Flatten to clause list ───────────────────────────────

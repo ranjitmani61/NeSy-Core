@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set
+from typing import List, Optional, Set
 
 from nesy.core.types import GroundedSymbol, NullSet, Predicate, SymbolicRule
 
@@ -37,6 +37,7 @@ from nesy.core.types import GroundedSymbol, NullSet, Predicate, SymbolicRule
 # ─────────────────────────────────────────────
 #  DATA CLASSES
 # ─────────────────────────────────────────────
+
 
 @dataclass
 class IntegrityItem:
@@ -50,11 +51,11 @@ class IntegrityItem:
         residual:    ISR(s) = need × |membership − evidence|.
     """
 
-    schema:     str
-    evidence:   float
+    schema: str
+    evidence: float
     membership: float
-    need:       float
-    residual:   float
+    need: float
+    residual: float
 
 
 @dataclass
@@ -69,16 +70,17 @@ class IntegrityReport:
         is_neutral:      True when NSIL is bypassed (symbolic-only mode).
     """
 
-    items:           List[IntegrityItem] = field(default_factory=list)
-    integrity_score: float               = 1.0
-    flags:           List[str]           = field(default_factory=list)
-    suggestions:     List[str]           = field(default_factory=list)
-    is_neutral:      bool                = False
+    items: List[IntegrityItem] = field(default_factory=list)
+    integrity_score: float = 1.0
+    flags: List[str] = field(default_factory=list)
+    suggestions: List[str] = field(default_factory=list)
+    is_neutral: bool = False
 
 
 # ─────────────────────────────────────────────
 #  HELPER FUNCTIONS
 # ─────────────────────────────────────────────
+
 
 def _clamp01(value: float) -> float:
     """Clamp *value* to [0, 1].  Maps NaN/Inf to 0.0."""
@@ -132,6 +134,7 @@ def _best_proto_sim(
 #  MAIN COMPUTE FUNCTION
 # ─────────────────────────────────────────────
 
+
 def compute_integrity_report(
     grounded: List[GroundedSymbol],
     activated_rules: List[SymbolicRule],
@@ -174,9 +177,7 @@ def compute_integrity_report(
 
     # ── Step 1: required predicate set ────────────────────────
     required: Set[str] = _predicates_required_by_rules(activated_rules)
-    grounded_schemas: Set[str] = _predicate_schemas_present(
-        gs.predicate for gs in grounded
-    )
+    _predicate_schemas_present(gs.predicate for gs in grounded)
     derived_schemas: Set[str] = _predicate_schemas_present(derived_facts)
 
     # Evaluate over R ∪ D
@@ -197,13 +198,15 @@ def compute_integrity_report(
         need = 1.0 if schema in required else 0.5
         residual = need * abs(m - e)
 
-        items.append(IntegrityItem(
-            schema=schema,
-            evidence=e,
-            membership=m,
-            need=need,
-            residual=residual,
-        ))
+        items.append(
+            IntegrityItem(
+                schema=schema,
+                evidence=e,
+                membership=m,
+                need=need,
+                residual=residual,
+            )
+        )
 
     # ── Step 3: overall integrity score ───────────────────────
     residuals = [item.residual for item in items]
@@ -228,8 +231,7 @@ def compute_integrity_report(
                     f"grounding evidence is {item.evidence:.2f}"
                 )
                 suggestions.append(
-                    f"Provide grounding evidence for '{item.schema}' "
-                    f"or verify the derivation."
+                    f"Provide grounding evidence for '{item.schema}' or verify the derivation."
                 )
             elif item.membership == 0.0 and item.evidence > 0.8:
                 flags.append(
@@ -240,9 +242,7 @@ def compute_integrity_report(
     # Enrich with null set critical items
     if null_set is not None:
         for ci in null_set.critical_items:
-            suggestions.append(
-                f"Critical null '{ci.concept}' may affect integrity."
-            )
+            suggestions.append(f"Critical null '{ci.concept}' may affect integrity.")
 
     return IntegrityReport(
         items=items,

@@ -8,6 +8,7 @@ Mathematical basis:
     C_reasoning = √(symbolic_conf × satisfied_ratio)
     C_boundary  = neural_conf × (1 − 0.3 × background_gap)
 """
+
 import math
 import pytest
 from nesy.metacognition.confidence import (

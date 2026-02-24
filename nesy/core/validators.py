@@ -19,19 +19,18 @@ All validation failures raise **NeSyError** subclasses already defined.
 Silent failures are forbidden — every bad input produces a typed exception
 with structured context.
 """
+
 from __future__ import annotations
 
 import math
 import re
-from typing import List, Optional, Set, Tuple
+from typing import List, Set
 
 from nesy.core.exceptions import NeSyError
 from nesy.core.types import (
     ConceptEdge,
     ConfidenceReport,
-    NSIOutput,
     NullSet,
-    NullType,
     Predicate,
     PresentSet,
     SymbolicRule,
@@ -40,12 +39,13 @@ from nesy.core.types import (
 
 # ─── REGEX PATTERNS ───────────────────────────────────────────────
 
-VALID_NAME_RE  = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
-VARIABLE_RE    = re.compile(r'^\?[A-Za-z_][A-Za-z0-9_]*$')
-GROUND_TERM_RE = re.compile(r'^[A-Za-z0-9_][A-Za-z0-9_.\-]*$')
+VALID_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+VARIABLE_RE = re.compile(r"^\?[A-Za-z_][A-Za-z0-9_]*$")
+GROUND_TERM_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.\-]*$")
 
 
 # ─── PREDICATE VALIDATION ─────────────────────────────────────────
+
 
 def validate_predicate(p: Predicate) -> List[str]:
     """Validate a single predicate. Returns list of error strings.
@@ -61,9 +61,7 @@ def validate_predicate(p: Predicate) -> List[str]:
     if not p.name:
         errors.append("Predicate name is empty")
     elif not VALID_NAME_RE.match(p.name):
-        errors.append(
-            f"Predicate name '{p.name}' invalid: must be [A-Za-z_][A-Za-z0-9_]*"
-        )
+        errors.append(f"Predicate name '{p.name}' invalid: must be [A-Za-z_][A-Za-z0-9_]*")
 
     for i, arg in enumerate(p.args):
         if not arg:
@@ -102,6 +100,7 @@ def validate_facts(facts: Set[Predicate]) -> List[str]:
 
 
 # ─── RULE VALIDATION ──────────────────────────────────────────────
+
 
 def validate_rule(rule: SymbolicRule) -> List[str]:
     """Validate a single SymbolicRule. Returns list of errors.
@@ -149,10 +148,7 @@ def validate_rules_no_duplicates(rules: List[SymbolicRule]) -> List[str]:
     seen: dict[str, int] = {}
     for rule in rules:
         if rule.id in seen:
-            errors.append(
-                f"Duplicate rule id '{rule.id}' "
-                f"(first at index {seen[rule.id]})"
-            )
+            errors.append(f"Duplicate rule id '{rule.id}' (first at index {seen[rule.id]})")
         else:
             seen[rule.id] = rules.index(rule)
     return errors
@@ -170,13 +166,13 @@ def validate_immutable_not_overwritten(
     for existing in existing_rules:
         if existing.id == new_rule.id and existing.immutable:
             errors.append(
-                f"Cannot overwrite immutable rule '{existing.id}' "
-                f"(immutable=True, symbolic anchor)"
+                f"Cannot overwrite immutable rule '{existing.id}' (immutable=True, symbolic anchor)"
             )
     return errors
 
 
 # ─── CONCEPT EDGE VALIDATION ──────────────────────────────────────
+
 
 def validate_concept_edge(edge: ConceptEdge) -> List[str]:
     """Validate a ConceptEdge. Returns list of errors.
@@ -220,12 +216,13 @@ def validate_concept_edge(edge: ConceptEdge) -> List[str]:
 
 # ─── CONFIDENCE REPORT VALIDATION ────────────────────────────────
 
+
 def validate_confidence_report(report: ConfidenceReport) -> List[str]:
     """Validate that all confidence scores are in [0, 1]."""
     errors: List[str] = []
     for name, val in [
-        ("factual",            report.factual),
-        ("reasoning",          report.reasoning),
+        ("factual", report.factual),
+        ("reasoning", report.reasoning),
         ("knowledge_boundary", report.knowledge_boundary),
     ]:
         if not (0.0 <= val <= 1.0):
@@ -234,6 +231,7 @@ def validate_confidence_report(report: ConfidenceReport) -> List[str]:
 
 
 # ─── PRESENT SET / NULL SET VALIDATION ────────────────────────────
+
 
 def validate_present_set(ps: PresentSet) -> List[str]:
     """Validate a PresentSet.
@@ -262,8 +260,7 @@ def validate_null_set(ns: NullSet) -> List[str]:
     for item in ns.items:
         if item.concept in present_concepts:
             errors.append(
-                f"NullSet contains '{item.concept}' which is also "
-                f"in PresentSet — contradictory"
+                f"NullSet contains '{item.concept}' which is also in PresentSet — contradictory"
             )
     # Check ordering: Type3 > Type2 > Type1
     type_order = [item.null_type.value for item in ns.items]
@@ -277,6 +274,7 @@ def validate_null_set(ns: NullSet) -> List[str]:
 
 
 # ─── NUMERICAL STABILITY ─────────────────────────────────────────
+
 
 def clamp_probability(value: float, label: str = "probability") -> float:
     """Clamp a value to [0, 1] with NaN/Inf guard.
@@ -320,6 +318,7 @@ def safe_divide(numerator: float, denominator: float, epsilon: float = 1e-8) -> 
 
 # ─── CONVENIENCE VALIDATORS ──────────────────────────────────────
 
+
 def assert_valid_facts(facts: Set[Predicate]) -> None:
     """Validate facts and raise NeSyError on any violation."""
     errors = validate_facts(facts)
@@ -345,8 +344,7 @@ def assert_valid_concept_edge(edge: ConceptEdge) -> None:
     errors = validate_concept_edge(edge)
     if errors:
         raise NeSyError(
-            f"Invalid concept edge {edge.source}→{edge.target}: "
-            f"{'; '.join(errors)}",
+            f"Invalid concept edge {edge.source}→{edge.target}: {'; '.join(errors)}",
             context={"source": edge.source, "target": edge.target},
         )
 

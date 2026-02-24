@@ -15,15 +15,23 @@ Modules covered:
     deployment/lite.py     (39% → aim 75%)
     deployment/optimizer.py (23% → aim 65%)
 """
+
 import pytest
 from nesy.core.types import (
-    ConceptEdge, ConfidenceReport, NullItem, NullSet,
-    OutputStatus, Predicate, PresentSet, ReasoningStep, SymbolicRule,
+    ConceptEdge,
+    ConfidenceReport,
+    NullItem,
+    NullSet,
+    OutputStatus,
+    Predicate,
+    PresentSet,
+    SymbolicRule,
 )
 from nesy.api.nesy_model import NeSyModel
 
 
 # ── helpers ──────────────────────────────────────────────────────
+
 
 def _make_model(**kwargs) -> NeSyModel:
     return NeSyModel(domain="general", **kwargs)
@@ -47,7 +55,10 @@ def _make_null_set(items=None) -> NullSet:
 
 def _make_null_item(concept: str, null_type: int = 2, weight: float = 0.5) -> NullItem:
     from nesy.core.types import NullType
-    nt = {1: NullType.TYPE1_EXPECTED, 2: NullType.TYPE2_MEANINGFUL, 3: NullType.TYPE3_CRITICAL}[null_type]
+
+    nt = {1: NullType.TYPE1_EXPECTED, 2: NullType.TYPE2_MEANINGFUL, 3: NullType.TYPE3_CRITICAL}[
+        null_type
+    ]
     return NullItem(
         concept=concept,
         null_type=nt,
@@ -79,10 +90,11 @@ def _make_edge(src: str, tgt: str, prob: float = 0.8) -> ConceptEdge:
 #  api/context.py — strict_mode, relaxed_mode, domain_context
 # ══════════════════════════════════════════════════════════════════
 
-class TestContextManagers:
 
+class TestContextManagers:
     def test_strict_mode_enters_and_exits(self):
         from nesy.api.context import strict_mode
+
         model = _make_model()
         original = model._monitor.strict_mode
         with strict_mode(model) as m:
@@ -91,6 +103,7 @@ class TestContextManagers:
 
     def test_strict_mode_restores_on_exception(self):
         from nesy.api.context import strict_mode
+
         model = _make_model()
         original = model._monitor.strict_mode
         try:
@@ -102,6 +115,7 @@ class TestContextManagers:
 
     def test_relaxed_mode_lowers_threshold(self):
         from nesy.api.context import relaxed_mode
+
         model = _make_model(doubt_threshold=0.75)
         with relaxed_mode(model, threshold=0.30) as m:
             assert m._monitor.doubt_threshold == 0.30
@@ -109,6 +123,7 @@ class TestContextManagers:
 
     def test_relaxed_mode_restores_on_exception(self):
         from nesy.api.context import relaxed_mode
+
         model = _make_model(doubt_threshold=0.75)
         try:
             with relaxed_mode(model, threshold=0.10):
@@ -119,6 +134,7 @@ class TestContextManagers:
 
     def test_domain_context_changes_domain(self):
         from nesy.api.context import domain_context
+
         model = _make_model()
         model.domain = "general"
         with domain_context(model, "medical") as m:
@@ -127,6 +143,7 @@ class TestContextManagers:
 
     def test_domain_context_restores_on_exception(self):
         from nesy.api.context import domain_context
+
         model = _make_model()
         model.domain = "general"
         try:
@@ -138,6 +155,7 @@ class TestContextManagers:
 
     def test_nested_contexts(self):
         from nesy.api.context import strict_mode, relaxed_mode
+
         model = _make_model(doubt_threshold=0.75)
         with strict_mode(model):
             with relaxed_mode(model, threshold=0.20):
@@ -149,8 +167,8 @@ class TestContextManagers:
 #  api/decorators.py — symbolic_rule, requires_proof, domain
 # ══════════════════════════════════════════════════════════════════
 
-class TestDecorators:
 
+class TestDecorators:
     def test_symbolic_rule_attaches_metadata(self):
         from nesy.api.decorators import symbolic_rule
 
@@ -263,54 +281,64 @@ class TestDecorators:
 #  api/pipeline.py — NeSyPipeline builder
 # ══════════════════════════════════════════════════════════════════
 
-class TestNeSyPipeline:
 
+class TestNeSyPipeline:
     def test_basic_build(self):
         from nesy.api.pipeline import NeSyPipeline
+
         pipeline = NeSyPipeline().build()
         assert pipeline is not None
 
     def test_with_rules(self):
         from nesy.api.pipeline import NeSyPipeline
+
         rule = _make_rule("test_rule")
         pipeline = NeSyPipeline().with_rules([rule]).build()
         assert pipeline is not None
 
     def test_with_concept_edges(self):
         from nesy.api.pipeline import NeSyPipeline
+
         edge = _make_edge("fever", "blood_test")
         pipeline = NeSyPipeline().with_concept_edges([edge]).build()
         assert pipeline is not None
 
     def test_with_domain(self):
         from nesy.api.pipeline import NeSyPipeline
+
         pipeline = NeSyPipeline().with_domain("medical").build()
         assert pipeline is not None
 
     def test_with_doubt_threshold(self):
         from nesy.api.pipeline import NeSyPipeline
+
         pipeline = NeSyPipeline().with_doubt_threshold(0.75).build()
         assert pipeline is not None
 
     def test_strict_mode(self):
         from nesy.api.pipeline import NeSyPipeline
+
         pipeline = NeSyPipeline().strict().build()
         assert pipeline is not None
 
     def test_fluent_chaining(self):
         from nesy.api.pipeline import NeSyPipeline
+
         rule = _make_rule("r1")
         edge = _make_edge("a", "b")
-        pipeline = (NeSyPipeline()
-                    .with_rules([rule])
-                    .with_concept_edges([edge])
-                    .with_domain("medical")
-                    .with_doubt_threshold(0.65)
-                    .build())
+        pipeline = (
+            NeSyPipeline()
+            .with_rules([rule])
+            .with_concept_edges([edge])
+            .with_domain("medical")
+            .with_doubt_threshold(0.65)
+            .build()
+        )
         assert pipeline is not None
 
     def test_run_with_facts_directly(self):
         from nesy.api.pipeline import NeSyPipeline
+
         rule = SymbolicRule(
             id="r1",
             antecedents=[Predicate("IsPhilosopher", ("?x",))],
@@ -325,6 +353,7 @@ class TestNeSyPipeline:
     def test_with_passthrough_backbone(self):
         from nesy.api.pipeline import NeSyPipeline
         from nesy.neural.base import PassthroughBackbone
+
         backbone = PassthroughBackbone(dim=4)
         pipeline = NeSyPipeline().with_backbone(backbone).build()
         assert pipeline is not None
@@ -334,14 +363,16 @@ class TestNeSyPipeline:
 #  metacognition/doubt.py — SelfDoubtLayer
 # ══════════════════════════════════════════════════════════════════
 
-class TestSelfDoubtLayer:
 
+class TestSelfDoubtLayer:
     def test_import(self):
         from nesy.metacognition.doubt import SelfDoubtLayer
+
         assert SelfDoubtLayer is not None
 
     def test_ok_when_high_confidence_no_nulls(self):
         from nesy.metacognition.doubt import SelfDoubtLayer
+
         layer = SelfDoubtLayer(threshold=0.60)
         conf = _make_confidence(factual=0.95, reasoning=0.95, boundary=0.95)
         null_set = _make_null_set()
@@ -351,6 +382,7 @@ class TestSelfDoubtLayer:
 
     def test_flagged_when_confidence_below_threshold(self):
         from nesy.metacognition.doubt import SelfDoubtLayer
+
         layer = SelfDoubtLayer(threshold=0.60)
         conf = _make_confidence(factual=0.40, reasoning=0.90, boundary=0.90)
         null_set = _make_null_set()
@@ -361,6 +393,7 @@ class TestSelfDoubtLayer:
 
     def test_rejected_when_critical_null_present(self):
         from nesy.metacognition.doubt import SelfDoubtLayer
+
         layer = SelfDoubtLayer(threshold=0.60)
         conf = _make_confidence(factual=0.95, reasoning=0.95, boundary=0.95)
         critical = _make_null_item("temperature_reading", null_type=3, weight=1.0)
@@ -371,6 +404,7 @@ class TestSelfDoubtLayer:
 
     def test_topological_doubt_when_betti_high(self):
         from nesy.metacognition.doubt import SelfDoubtLayer
+
         layer = SelfDoubtLayer(threshold=0.60, betti_warn=2)
         conf = _make_confidence(factual=0.90, reasoning=0.90, boundary=0.90)
         null_set = _make_null_set()
@@ -380,6 +414,7 @@ class TestSelfDoubtLayer:
 
     def test_uncertain_when_borderline_confidence(self):
         from nesy.metacognition.doubt import SelfDoubtLayer
+
         layer = SelfDoubtLayer(threshold=0.60)
         # min confidence = 0.65 → above threshold (0.60) but below reliable (0.75)
         conf = _make_confidence(factual=0.65, reasoning=0.80, boundary=0.90)
@@ -389,6 +424,7 @@ class TestSelfDoubtLayer:
 
     def test_flags_list_type(self):
         from nesy.metacognition.doubt import SelfDoubtLayer
+
         layer = SelfDoubtLayer(threshold=0.60)
         conf = _make_confidence()
         status, flags = layer.evaluate(conf, _make_null_set(), betti_0=1)
@@ -396,6 +432,7 @@ class TestSelfDoubtLayer:
 
     def test_threshold_boundary_exact_match(self):
         from nesy.metacognition.doubt import SelfDoubtLayer
+
         # At exactly the threshold
         layer = SelfDoubtLayer(threshold=0.60)
         conf = _make_confidence(factual=0.60, reasoning=0.90, boundary=0.90)
@@ -409,14 +446,16 @@ class TestSelfDoubtLayer:
 #  metacognition/trace.py — TraceBuilder
 # ══════════════════════════════════════════════════════════════════
 
-class TestTraceBuilder:
 
+class TestTraceBuilder:
     def test_import(self):
         from nesy.metacognition.trace import TraceBuilder
+
         assert TraceBuilder is not None
 
     def test_empty_trace(self):
         from nesy.metacognition.trace import TraceBuilder
+
         tb = TraceBuilder()
         trace = tb.build(neural_confidence=1.0, symbolic_confidence=1.0, null_violations=[])
         assert trace is not None
@@ -424,6 +463,7 @@ class TestTraceBuilder:
 
     def test_add_initial_facts(self):
         from nesy.metacognition.trace import TraceBuilder
+
         tb = TraceBuilder()
         facts = {Predicate("Fever", ("p1",)), Predicate("Cough", ("p1",))}
         tb.add_initial_facts(facts)
@@ -433,6 +473,7 @@ class TestTraceBuilder:
 
     def test_add_derived_step(self):
         from nesy.metacognition.trace import TraceBuilder
+
         tb = TraceBuilder()
         facts = {Predicate("Fever", ("p1",))}
         tb.add_initial_facts(facts)
@@ -443,6 +484,7 @@ class TestTraceBuilder:
 
     def test_rules_activated_populated(self):
         from nesy.metacognition.trace import TraceBuilder
+
         tb = TraceBuilder()
         facts = {Predicate("A", ("x",))}
         tb.add_initial_facts(facts)
@@ -454,6 +496,7 @@ class TestTraceBuilder:
 
     def test_null_violations_in_trace(self):
         from nesy.metacognition.trace import TraceBuilder
+
         tb = TraceBuilder()
         violations = [_make_null_item("blood_test", null_type=2)]
         trace = tb.build(neural_confidence=0.8, symbolic_confidence=0.9, null_violations=violations)
@@ -461,6 +504,7 @@ class TestTraceBuilder:
 
     def test_add_derived_with_description(self):
         from nesy.metacognition.trace import TraceBuilder
+
         tb = TraceBuilder()
         tb.add_initial_facts({Predicate("X", ("a",))})
         tb.add_derived(
@@ -475,6 +519,7 @@ class TestTraceBuilder:
 
     def test_confidence_stored(self):
         from nesy.metacognition.trace import TraceBuilder
+
         tb = TraceBuilder()
         trace = tb.build(neural_confidence=0.88, symbolic_confidence=0.77, null_violations=[])
         assert trace.neural_confidence == 0.88
@@ -482,6 +527,7 @@ class TestTraceBuilder:
 
     def test_step_numbers_increment(self):
         from nesy.metacognition.trace import TraceBuilder
+
         tb = TraceBuilder()
         tb.add_initial_facts({Predicate("A", ("x",))})
         tb.add_derived(Predicate("B", ("x",)), "r1", 1.0)
@@ -495,15 +541,17 @@ class TestTraceBuilder:
 #  continual/replay.py — RandomReplay, PrioritisedReplay, SymbolicAnchorReplay
 # ══════════════════════════════════════════════════════════════════
 
-class TestRandomReplay:
 
+class TestRandomReplay:
     def test_import(self):
         from nesy.continual.replay import RandomReplay
+
         assert RandomReplay is not None
 
     def test_sample_returns_correct_count(self):
         from nesy.continual.replay import RandomReplay
         from nesy.continual.memory_buffer import EpisodicMemoryBuffer, MemoryItem
+
         buf = EpisodicMemoryBuffer(max_size=100)
         for i in range(20):
             buf.add(MemoryItem(data=f"item_{i}", task_id="task_a"))
@@ -515,6 +563,7 @@ class TestRandomReplay:
     def test_sample_empty_buffer(self):
         from nesy.continual.replay import RandomReplay
         from nesy.continual.memory_buffer import EpisodicMemoryBuffer
+
         buf = EpisodicMemoryBuffer(max_size=100)
         replay = RandomReplay(buffer=buf, replay_ratio=0.5)
         samples = replay.sample(n=10)
@@ -523,6 +572,7 @@ class TestRandomReplay:
     def test_replay_ratio_zero_returns_empty(self):
         from nesy.continual.replay import RandomReplay
         from nesy.continual.memory_buffer import EpisodicMemoryBuffer, MemoryItem
+
         buf = EpisodicMemoryBuffer(max_size=100)
         for i in range(10):
             buf.add(MemoryItem(data=i, task_id="t"))
@@ -534,14 +584,15 @@ class TestRandomReplay:
 
 
 class TestPrioritisedReplay:
-
     def test_import(self):
         from nesy.continual.replay import PrioritisedReplay
+
         assert PrioritisedReplay is not None
 
     def test_add_and_sample(self):
         from nesy.continual.replay import PrioritisedReplay
         from nesy.continual.memory_buffer import MemoryItem
+
         replay = PrioritisedReplay(alpha=0.6, beta=0.4, max_size=50)
         for i in range(10):
             item = MemoryItem(data=f"item_{i}", task_id="task")
@@ -556,6 +607,7 @@ class TestPrioritisedReplay:
         """Over many samples, high-priority items appear more often."""
         from nesy.continual.replay import PrioritisedReplay
         from nesy.continual.memory_buffer import MemoryItem
+
         replay = PrioritisedReplay(alpha=1.0, beta=0.0, max_size=100)
         # Item 0: priority 1 (low)
         replay.add(MemoryItem(data="low", task_id="t"), priority=1.0)
@@ -573,6 +625,7 @@ class TestPrioritisedReplay:
     def test_update_priority(self):
         from nesy.continual.replay import PrioritisedReplay
         from nesy.continual.memory_buffer import MemoryItem
+
         replay = PrioritisedReplay(alpha=0.6, beta=0.4, max_size=50)
         item = MemoryItem(data="item", task_id="t")
         replay.add(item, priority=1.0)
@@ -581,20 +634,22 @@ class TestPrioritisedReplay:
 
     def test_sample_empty_returns_empty(self):
         from nesy.continual.replay import PrioritisedReplay
+
         replay = PrioritisedReplay(alpha=0.6, beta=0.4, max_size=50)
         items = replay.sample(5)
         assert items == []
 
 
 class TestSymbolicAnchorReplay:
-
     def test_import(self):
         from nesy.continual.replay import SymbolicAnchorReplay
+
         assert SymbolicAnchorReplay is not None
 
     def test_replay_injects_rules_into_engine(self):
         from nesy.continual.replay import SymbolicAnchorReplay
         from nesy.symbolic.engine import SymbolicEngine
+
         try:
             from nesy.continual.symbolic_anchor import SymbolicAnchor
         except ImportError:
@@ -615,26 +670,32 @@ class TestSymbolicAnchorReplay:
 #  nsi/path_finder.py — ConceptPathFinder
 # ══════════════════════════════════════════════════════════════════
 
-class TestConceptPathFinder:
 
+class TestConceptPathFinder:
     def _build_graph(self, edges):
         from nesy.nsi.concept_graph import ConceptGraphEngine
+
         engine = ConceptGraphEngine(domain="general")
         for src, tgt, prob in edges:
-            engine.add_edge(ConceptEdge(
-                source=src, target=tgt,
-                cooccurrence_prob=prob,
-                causal_strength=0.5,
-                temporal_stability=0.5,
-            ))
+            engine.add_edge(
+                ConceptEdge(
+                    source=src,
+                    target=tgt,
+                    cooccurrence_prob=prob,
+                    causal_strength=0.5,
+                    temporal_stability=0.5,
+                )
+            )
         return engine
 
     def test_import(self):
         from nesy.nsi.path_finder import ConceptPathFinder
+
         assert ConceptPathFinder is not None
 
     def test_direct_path(self):
         from nesy.nsi.path_finder import ConceptPathFinder
+
         graph = self._build_graph([("fever", "blood_test", 0.9)])
         finder = ConceptPathFinder(graph._graph)
         path = finder.shortest_path("fever", "blood_test")
@@ -644,6 +705,7 @@ class TestConceptPathFinder:
 
     def test_no_path_returns_none(self):
         from nesy.nsi.path_finder import ConceptPathFinder
+
         graph = self._build_graph([("a", "b", 0.8)])
         finder = ConceptPathFinder(graph._graph)
         path = finder.shortest_path("a", "c")  # c doesn't exist
@@ -651,6 +713,7 @@ class TestConceptPathFinder:
 
     def test_same_source_and_target(self):
         from nesy.nsi.path_finder import ConceptPathFinder
+
         graph = self._build_graph([("a", "b", 0.8)])
         finder = ConceptPathFinder(graph._graph)
         path = finder.shortest_path("a", "a")
@@ -659,10 +722,13 @@ class TestConceptPathFinder:
 
     def test_multi_hop_path(self):
         from nesy.nsi.path_finder import ConceptPathFinder
-        graph = self._build_graph([
-            ("fever", "blood_test", 0.9),
-            ("blood_test", "wbc_count", 0.8),
-        ])
+
+        graph = self._build_graph(
+            [
+                ("fever", "blood_test", 0.9),
+                ("blood_test", "wbc_count", 0.8),
+            ]
+        )
         finder = ConceptPathFinder(graph._graph)
         path = finder.shortest_path("fever", "wbc_count")
         assert path is not None
@@ -670,23 +736,29 @@ class TestConceptPathFinder:
 
     def test_all_paths_returns_list(self):
         from nesy.nsi.path_finder import ConceptPathFinder
-        graph = self._build_graph([
-            ("a", "b", 0.9),
-            ("a", "c", 0.7),
-            ("b", "d", 0.8),
-            ("c", "d", 0.6),
-        ])
+
+        graph = self._build_graph(
+            [
+                ("a", "b", 0.9),
+                ("a", "c", 0.7),
+                ("b", "d", 0.8),
+                ("c", "d", 0.6),
+            ]
+        )
         finder = ConceptPathFinder(graph._graph)
         paths = finder.all_paths("a", "d", max_hops=3)
         assert isinstance(paths, list)
 
     def test_reachable_from(self):
         from nesy.nsi.path_finder import ConceptPathFinder
-        graph = self._build_graph([
-            ("fever", "blood_test", 0.9),
-            ("blood_test", "wbc_count", 0.8),
-            ("fever", "temperature_reading", 0.95),
-        ])
+
+        graph = self._build_graph(
+            [
+                ("fever", "blood_test", 0.9),
+                ("blood_test", "wbc_count", 0.8),
+                ("fever", "temperature_reading", 0.95),
+            ]
+        )
         finder = ConceptPathFinder(graph._graph)
         reachable = finder.reachable_from("fever", max_hops=2)
         assert isinstance(reachable, dict)
@@ -695,9 +767,12 @@ class TestConceptPathFinder:
 
     def test_explain_null(self):
         from nesy.nsi.path_finder import ConceptPathFinder
-        graph = self._build_graph([
-            ("fever", "blood_test", 0.9),
-        ])
+
+        graph = self._build_graph(
+            [
+                ("fever", "blood_test", 0.9),
+            ]
+        )
         finder = ConceptPathFinder(graph._graph)
         explanation = finder.explain_null("blood_test", {"fever"})
         assert isinstance(explanation, str)
@@ -705,6 +780,7 @@ class TestConceptPathFinder:
 
     def test_path_weight_property(self):
         from nesy.nsi.path_finder import ConceptPathFinder
+
         graph = self._build_graph([("a", "b", 0.9)])
         finder = ConceptPathFinder(graph._graph)
         path = finder.shortest_path("a", "b")
@@ -716,14 +792,16 @@ class TestConceptPathFinder:
 #  evaluation/evaluator.py — NeSyEvaluator
 # ══════════════════════════════════════════════════════════════════
 
-class TestNeSyEvaluator:
 
+class TestNeSyEvaluator:
     def test_import(self):
-        from nesy.evaluation.evaluator import NeSyEvaluator, EvalCase
+        from nesy.evaluation.evaluator import NeSyEvaluator
+
         assert NeSyEvaluator is not None
 
     def test_evaluate_empty_cases(self):
-        from nesy.evaluation.evaluator import NeSyEvaluator, EvalCase
+        from nesy.evaluation.evaluator import NeSyEvaluator
+
         model = _make_model()
         evaluator = NeSyEvaluator(model)
         report = evaluator.evaluate([])
@@ -731,6 +809,7 @@ class TestNeSyEvaluator:
 
     def test_evaluate_one_case(self):
         from nesy.evaluation.evaluator import NeSyEvaluator, EvalCase
+
         model = _make_model()
         rule = SymbolicRule(
             id="r1",
@@ -751,6 +830,7 @@ class TestNeSyEvaluator:
 
     def test_evaluate_one_returns_output(self):
         from nesy.evaluation.evaluator import NeSyEvaluator, EvalCase
+
         model = _make_model()
         evaluator = NeSyEvaluator(model)
         case = EvalCase(
@@ -768,31 +848,37 @@ class TestNeSyEvaluator:
 #  deployment/lite.py — NeSyLite (compressed graph)
 # ══════════════════════════════════════════════════════════════════
 
-class TestNeSyLite:
 
+class TestNeSyLite:
     def test_import(self):
         from nesy.deployment.lite import NeSyLite
+
         assert NeSyLite is not None
 
     def test_compress_concept_graph(self):
         from nesy.deployment.lite import NeSyLite
         from nesy.nsi.concept_graph import ConceptGraphEngine
+
         engine = ConceptGraphEngine(domain="general")
         # Add many edges — lite should keep only top-K
         concepts = ["fever", "blood_test", "wbc", "temperature", "cough", "headache"]
         for i in range(len(concepts) - 1):
-            engine.add_edge(ConceptEdge(
-                source=concepts[i], target=concepts[i + 1],
-                cooccurrence_prob=1.0 - i * 0.1,
-                causal_strength=0.5,
-                temporal_stability=0.5,
-            ))
+            engine.add_edge(
+                ConceptEdge(
+                    source=concepts[i],
+                    target=concepts[i + 1],
+                    cooccurrence_prob=1.0 - i * 0.1,
+                    causal_strength=0.5,
+                    temporal_stability=0.5,
+                )
+            )
         compressed = NeSyLite.compress(engine, top_k_edges=3)
         assert compressed is not None
 
     def test_lite_model_reason(self):
         from nesy.deployment.lite import NeSyLite
         from nesy.nsi.concept_graph import ConceptGraphEngine
+
         # Compress an empty graph — should still work
         engine = ConceptGraphEngine(domain="general")
         compressed = NeSyLite.compress(engine, top_k_edges=10)
@@ -803,14 +889,16 @@ class TestNeSyLite:
 #  deployment/optimizer.py — SymbolicGuidedOptimizer
 # ══════════════════════════════════════════════════════════════════
 
-class TestSymbolicGuidedOptimizer:
 
+class TestSymbolicGuidedOptimizer:
     def test_import(self):
         from nesy.deployment.optimizer import SymbolicGuidedOptimizer
+
         assert SymbolicGuidedOptimizer is not None
 
     def test_score_rules_by_importance(self):
         from nesy.deployment.optimizer import SymbolicGuidedOptimizer
+
         rules = [
             _make_rule("high_weight_rule", weight=0.95),
             _make_rule("low_weight_rule", weight=0.30),
@@ -830,6 +918,7 @@ class TestSymbolicGuidedOptimizer:
 
     def test_prune_low_importance_rules(self):
         from nesy.deployment.optimizer import SymbolicGuidedOptimizer
+
         optimizer = SymbolicGuidedOptimizer(pruning_threshold=0.50)
         params = {
             "keep_1": 1.0,

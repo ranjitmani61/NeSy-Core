@@ -6,6 +6,7 @@ Integration tests for HuggingFace wrapper.
 These test the NeSyHFWrapper with a mock HF pipeline
 (no real transformers model needed).
 """
+
 import pytest
 from nesy.integrations.huggingface import NeSyHFWrapper
 from nesy.core.types import (
@@ -19,6 +20,7 @@ from nesy.core.types import (
 
 class MockHFPipeline:
     """Simulates a HuggingFace pipeline.__call__ return value."""
+
     def __init__(self, score: float = 0.92, label: str = "positive"):
         self._score = score
         self._label = label
@@ -29,6 +31,7 @@ class MockHFPipeline:
 
 class MockFailingPipeline:
     """Simulates a HF pipeline that raises on __call__."""
+
     def __call__(self, text: str):
         raise RuntimeError("Model loading failed")
 
@@ -53,7 +56,8 @@ def medical_rules():
 def medical_edges():
     return [
         ConceptEdge(
-            "fever", "blood_test",
+            "fever",
+            "blood_test",
             cooccurrence_prob=0.90,
             causal_strength=1.0,
             temporal_stability=1.0,
@@ -94,8 +98,10 @@ class TestNeSyHFWrapper:
         )
         output = wrapper.reason("test input")
         assert output.status in (
-            OutputStatus.OK, OutputStatus.FLAGGED,
-            OutputStatus.UNCERTAIN, OutputStatus.REJECTED,
+            OutputStatus.OK,
+            OutputStatus.FLAGGED,
+            OutputStatus.UNCERTAIN,
+            OutputStatus.REJECTED,
         )
 
     def test_reason_handles_hf_failure(self, medical_rules):

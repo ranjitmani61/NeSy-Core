@@ -28,19 +28,20 @@ Null Set Precision = |correct_nulls ∩ actual_missing| / |correct_nulls|
 Null Set Recall = |correct_nulls ∩ actual_missing| / |actual_missing|
     Fraction of genuinely missing info that was caught
 """
+
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple
+from typing import List, Set, Tuple
 
 
 @dataclass
 class SymbolicMetrics:
     """Metrics for symbolic reasoning correctness."""
-    true_positives:  int = 0    # correct derived facts
-    false_positives: int = 0    # wrongly derived facts
-    false_negatives: int = 0    # facts not derived but should be
+
+    true_positives: int = 0  # correct derived facts
+    false_positives: int = 0  # wrongly derived facts
+    false_negatives: int = 0  # facts not derived but should be
 
     @property
     def precision(self) -> float:
@@ -67,7 +68,7 @@ class SymbolicMetrics:
         ground_truth: Set,
     ) -> None:
         """Update metrics from one prediction."""
-        self.true_positives  += len(derived & ground_truth)
+        self.true_positives += len(derived & ground_truth)
         self.false_positives += len(derived - ground_truth)
         self.false_negatives += len(ground_truth - derived)
 
@@ -75,11 +76,12 @@ class SymbolicMetrics:
 @dataclass
 class NSIMetrics:
     """Metrics for null set prediction quality."""
+
     # null_flagged: concepts we flagged as absent but important
     # actual_missing: concepts actually needed but not provided
-    flagged_correctly:  int = 0
-    flagged_wrongly:    int = 0
-    missed_missing:     int = 0
+    flagged_correctly: int = 0
+    flagged_wrongly: int = 0
+    missed_missing: int = 0
 
     @property
     def null_precision(self) -> float:
@@ -102,15 +104,16 @@ class NSIMetrics:
         actually_missing: Set[str],
     ) -> None:
         self.flagged_correctly += len(flagged_absent & actually_missing)
-        self.flagged_wrongly   += len(flagged_absent - actually_missing)
-        self.missed_missing    += len(actually_missing - flagged_absent)
+        self.flagged_wrongly += len(flagged_absent - actually_missing)
+        self.missed_missing += len(actually_missing - flagged_absent)
 
 
 @dataclass
 class ConfidenceMetrics:
     """Calibration metrics for confidence scores."""
-    n_bins:          int   = 10
-    _pairs:          List[Tuple[float, bool]] = field(default_factory=list)
+
+    n_bins: int = 10
+    _pairs: List[Tuple[float, bool]] = field(default_factory=list)
 
     def add(self, predicted_confidence: float, actual_correct: bool) -> None:
         self._pairs.append((predicted_confidence, actual_correct))
@@ -138,7 +141,7 @@ class ConfidenceMetrics:
             if not b:
                 continue
             avg_conf = sum(x[0] for x in b) / len(b)
-            avg_acc  = sum(1 for x in b if x[1]) / len(b)
+            avg_acc = sum(1 for x in b if x[1]) / len(b)
             ece += (len(b) / n) * abs(avg_acc - avg_conf)
         return ece
 
@@ -167,14 +170,15 @@ class ConfidenceMetrics:
 @dataclass
 class SelfDoubtMetrics:
     """Evaluate the self-doubt mechanism quality.
-    
+
     Good self-doubt: when system says FLAGGED/REJECTED, it's actually wrong.
     Bad self-doubt: when system says FLAGGED for correct outputs (too conservative).
     """
-    true_doubts:   int = 0   # Doubted and was actually wrong
-    false_doubts:  int = 0   # Doubted but was actually correct (over-cautious)
-    true_accepts:  int = 0   # Accepted and was actually correct
-    false_accepts: int = 0   # Accepted but was actually wrong (missed failure)
+
+    true_doubts: int = 0  # Doubted and was actually wrong
+    false_doubts: int = 0  # Doubted but was actually correct (over-cautious)
+    true_accepts: int = 0  # Accepted and was actually correct
+    false_accepts: int = 0  # Accepted but was actually wrong (missed failure)
 
     @property
     def doubt_precision(self) -> float:
@@ -198,11 +202,12 @@ class SelfDoubtMetrics:
 @dataclass
 class NeSyEvalReport:
     """Complete evaluation report for a NeSy model."""
-    symbolic:    SymbolicMetrics   = field(default_factory=SymbolicMetrics)
-    nsi:         NSIMetrics        = field(default_factory=NSIMetrics)
-    confidence:  ConfidenceMetrics = field(default_factory=ConfidenceMetrics)
-    self_doubt:  SelfDoubtMetrics  = field(default_factory=SelfDoubtMetrics)
-    n_evaluated: int               = 0
+
+    symbolic: SymbolicMetrics = field(default_factory=SymbolicMetrics)
+    nsi: NSIMetrics = field(default_factory=NSIMetrics)
+    confidence: ConfidenceMetrics = field(default_factory=ConfidenceMetrics)
+    self_doubt: SelfDoubtMetrics = field(default_factory=SelfDoubtMetrics)
+    n_evaluated: int = 0
 
     def summary(self) -> str:
         return (

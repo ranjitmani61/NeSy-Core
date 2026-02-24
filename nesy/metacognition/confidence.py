@@ -9,10 +9,11 @@ Dimensions:
     Reasoning:          geometric_mean(rule_weights_in_chain)
     KnowledgeBoundary:  neural_confidence × (1 - background_gap_penalty)
 """
+
 from __future__ import annotations
 import math
-from typing import Dict, List, Optional
-from nesy.core.types import ConfidenceReport, ConfidenceType, LogicClause, NullSet, NullType
+from typing import List
+from nesy.core.types import ConfidenceReport, LogicClause, NullSet, NullType
 
 
 def compute_factual(null_set: NullSet) -> float:
@@ -46,10 +47,10 @@ def compute_boundary(
 
 
 def build_confidence_report(
-    null_set:            NullSet,
+    null_set: NullSet,
     symbolic_confidence: float,
-    neural_confidence:   float,
-    clauses:             List[LogicClause],
+    neural_confidence: float,
+    clauses: List[LogicClause],
 ) -> ConfidenceReport:
     """Build a complete ConfidenceReport from all components."""
     f = compute_factual(null_set)

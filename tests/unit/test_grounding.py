@@ -7,6 +7,7 @@ Mathematical basis:
     similarity(e, μₚ) = (e · μₚ) / (‖e‖ × ‖μₚ‖)
     Grounded iff similarity ≥ threshold.
 """
+
 import math
 import pytest
 from nesy.neural.grounding import SymbolGrounder, PredicatePrototype
@@ -38,16 +39,20 @@ class TestGrounding:
     @pytest.fixture
     def grounder(self):
         g = SymbolGrounder(threshold=0.70)
-        g.register(PredicatePrototype(
-            predicate=Predicate("HasSymptom", ("?p", "fever")),
-            prototype=[1.0, 0.0, 0.0],
-            domain="medical",
-        ))
-        g.register(PredicatePrototype(
-            predicate=Predicate("HasSymptom", ("?p", "cough")),
-            prototype=[0.0, 1.0, 0.0],
-            domain="medical",
-        ))
+        g.register(
+            PredicatePrototype(
+                predicate=Predicate("HasSymptom", ("?p", "fever")),
+                prototype=[1.0, 0.0, 0.0],
+                domain="medical",
+            )
+        )
+        g.register(
+            PredicatePrototype(
+                predicate=Predicate("HasSymptom", ("?p", "cough")),
+                prototype=[0.0, 1.0, 0.0],
+                domain="medical",
+            )
+        )
         return g
 
     def test_identical_vector_grounded(self, grounder):
@@ -70,11 +75,13 @@ class TestGrounding:
 
     def test_domain_filter(self, grounder):
         """Non-matching domain should be excluded."""
-        grounder.register(PredicatePrototype(
-            predicate=Predicate("CodeError", ("?f",)),
-            prototype=[1.0, 0.0, 0.0],
-            domain="code",
-        ))
+        grounder.register(
+            PredicatePrototype(
+                predicate=Predicate("CodeError", ("?f",)),
+                prototype=[1.0, 0.0, 0.0],
+                domain="code",
+            )
+        )
         result = grounder.ground([1.0, 0.0, 0.0], domain="medical")
         pred_names = {r.predicate.name for r in result}
         assert "CodeError" not in pred_names

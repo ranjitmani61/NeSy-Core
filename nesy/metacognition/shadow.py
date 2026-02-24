@@ -56,6 +56,7 @@ SAFETY APPLICATION:
 Author:  NeSy-Core Team
 Date:    2026
 """
+
 from __future__ import annotations
 
 import itertools
@@ -63,7 +64,7 @@ import logging
 import math
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, FrozenSet, List, Optional, Set, Tuple
+from typing import Dict, FrozenSet, List, Optional, Set
 
 from nesy.core.types import Predicate, SymbolicRule
 
@@ -74,13 +75,15 @@ logger = logging.getLogger(__name__)
 #  ENUMS AND DATACLASSES
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class ShadowClass(str, Enum):
     """Structural robustness classification based on shadow distance."""
-    TAUTOLOGY = "tautology"    # always true — shadow distance ∞
-    ROBUST    = "robust"       # distance ≥ 5 — safe to act
-    STABLE    = "stable"       # distance 3-4 — act with awareness
-    FRAGILE   = "fragile"      # distance 2 — human review required
-    CRITICAL  = "critical"     # distance 1 — one fact flip = wrong
+
+    TAUTOLOGY = "tautology"  # always true — shadow distance ∞
+    ROBUST = "robust"  # distance ≥ 5 — safe to act
+    STABLE = "stable"  # distance 3-4 — act with awareness
+    FRAGILE = "fragile"  # distance 2 — human review required
+    CRITICAL = "critical"  # distance 1 — one fact flip = wrong
 
 
 @dataclass
@@ -100,13 +103,14 @@ class ShadowResult:
         all_shadows:     All minimal shadows of the same distance (there may be
                          multiple equally-minimal cuts).
     """
-    conclusion:       Predicate
-    distance:         float           # int or math.inf
-    critical_facts:   FrozenSet[Predicate] = field(default_factory=frozenset)
+
+    conclusion: Predicate
+    distance: float  # int or math.inf
+    critical_facts: FrozenSet[Predicate] = field(default_factory=frozenset)
     flip_explanation: str = ""
-    shadow_class:     ShadowClass = ShadowClass.STABLE
-    rules_involved:   List[str] = field(default_factory=list)
-    all_shadows:      List[FrozenSet[Predicate]] = field(default_factory=list)
+    shadow_class: ShadowClass = ShadowClass.STABLE
+    rules_involved: List[str] = field(default_factory=list)
+    all_shadows: List[FrozenSet[Predicate]] = field(default_factory=list)
 
     @property
     def is_tautology(self) -> bool:
@@ -142,12 +146,13 @@ class ShadowReport:
     Contains per-conclusion shadow distances and system-level
     robustness summary.
     """
-    shadows:           Dict[str, ShadowResult]   # conclusion_str → ShadowResult
-    minimum_distance:  float                      # most fragile conclusion
-    most_critical:     Optional[ShadowResult]     # the most fragile conclusion
-    system_class:      ShadowClass                # overall system robustness
-    total_facts_used:  int
-    escalation_required: bool                     # True if any conclusion is CRITICAL
+
+    shadows: Dict[str, ShadowResult]  # conclusion_str → ShadowResult
+    minimum_distance: float  # most fragile conclusion
+    most_critical: Optional[ShadowResult]  # the most fragile conclusion
+    system_class: ShadowClass  # overall system robustness
+    total_facts_used: int
+    escalation_required: bool  # True if any conclusion is CRITICAL
 
     def summary(self) -> str:
         lines = [
@@ -164,6 +169,7 @@ class ShadowReport:
 # ─────────────────────────────────────────────────────────────────────────────
 #  CORE ENGINE
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class CounterfactualShadowEngine:
     """Computes Counterfactual Shadow Distance for derived conclusions.
@@ -208,10 +214,10 @@ class CounterfactualShadowEngine:
 
     def compute(
         self,
-        conclusion:    Predicate,
-        facts:         Set[Predicate],
-        rules:         List[SymbolicRule],
-        derived_steps: Optional[List] = None,   # ReasoningStep list if available
+        conclusion: Predicate,
+        facts: Set[Predicate],
+        rules: List[SymbolicRule],
+        derived_steps: Optional[List] = None,  # ReasoningStep list if available
     ) -> ShadowResult:
         """Compute shadow distance for a single conclusion.
 
@@ -265,9 +271,9 @@ class CounterfactualShadowEngine:
 
     def compute_all(
         self,
-        conclusions:   Set[Predicate],
-        facts:         Set[Predicate],
-        rules:         List[SymbolicRule],
+        conclusions: Set[Predicate],
+        facts: Set[Predicate],
+        rules: List[SymbolicRule],
     ) -> ShadowReport:
         """Compute shadow distances for all conclusions.
 
@@ -304,8 +310,8 @@ class CounterfactualShadowEngine:
     def _exact_search(
         self,
         conclusion: Predicate,
-        facts:      Set[Predicate],
-        rules:      List[SymbolicRule],
+        facts: Set[Predicate],
+        rules: List[SymbolicRule],
     ) -> ShadowResult:
         """Exact minimum cut via BFS over fact subsets.
 
@@ -363,8 +369,8 @@ class CounterfactualShadowEngine:
     def _heuristic_search(
         self,
         conclusion: Predicate,
-        facts:      Set[Predicate],
-        rules:      List[SymbolicRule],
+        facts: Set[Predicate],
+        rules: List[SymbolicRule],
     ) -> ShadowResult:
         """Heuristic shadow search for large fact sets.
 
@@ -387,8 +393,7 @@ class CounterfactualShadowEngine:
                 distance=float(self.max_shadow_depth),
                 critical_facts=frozenset(),
                 flip_explanation=(
-                    "Heuristic: no single load-bearing fact identified. "
-                    "Conclusion appears robust."
+                    "Heuristic: no single load-bearing fact identified. Conclusion appears robust."
                 ),
                 shadow_class=ShadowClass.ROBUST,
             )
@@ -438,8 +443,8 @@ class CounterfactualShadowEngine:
     def _find_load_bearing_facts(
         self,
         conclusion: Predicate,
-        facts:      Set[Predicate],
-        rules:      List[SymbolicRule],
+        facts: Set[Predicate],
+        rules: List[SymbolicRule],
     ) -> Set[Predicate]:
         """Find facts whose predicate name matches antecedents of rules
         that produce the conclusion's predicate.
@@ -449,10 +454,7 @@ class CounterfactualShadowEngine:
         load_bearing: Set[Predicate] = set()
 
         # Find rules that can derive conclusion's predicate
-        relevant_rules = [
-            r for r in rules
-            if any(c.name == conclusion.name for c in r.consequents)
-        ]
+        relevant_rules = [r for r in rules if any(c.name == conclusion.name for c in r.consequents)]
 
         # Find facts that match antecedents of those rules
         for rule in relevant_rules:
@@ -470,8 +472,8 @@ class CounterfactualShadowEngine:
     def _can_derive(
         self,
         conclusion: Predicate,
-        facts:      Set[Predicate],
-        rules:      List[SymbolicRule],
+        facts: Set[Predicate],
+        rules: List[SymbolicRule],
     ) -> bool:
         """Check if conclusion is derivable from reduced facts using rules.
 
@@ -482,8 +484,7 @@ class CounterfactualShadowEngine:
         If exact unification is needed, subclass and override this method.
         """
         # Direct fact check
-        if any(f.name == conclusion.name and len(f.args) == len(conclusion.args)
-               for f in facts):
+        if any(f.name == conclusion.name and len(f.args) == len(conclusion.args) for f in facts):
             return True
 
         # Forward chaining (fixpoint)
@@ -505,7 +506,7 @@ class CounterfactualShadowEngine:
 
     def _rule_fires(
         self,
-        rule:    SymbolicRule,
+        rule: SymbolicRule,
         derived: Set[Predicate],
     ) -> bool:
         """Check if all antecedents of a rule are present in derived set.
@@ -515,17 +516,18 @@ class CounterfactualShadowEngine:
         there must be at least two distinct facts with that name in derived.
         """
         from collections import Counter
+
         ant_name_counts = Counter(ant.name for ant in rule.antecedents)
         derived_name_counts = Counter(p.name for p in derived)
         return all(
-            derived_name_counts.get(name, 0) >= count
-            for name, count in ant_name_counts.items()
+            derived_name_counts.get(name, 0) >= count for name, count in ant_name_counts.items()
         )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  HELPER FUNCTIONS
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _classify_distance(distance: float) -> ShadowClass:
     """Map shadow distance to robustness class.
@@ -549,9 +551,9 @@ def _classify_distance(distance: float) -> ShadowClass:
 
 
 def _build_explanation(
-    conclusion:  Predicate,
-    shadow_set:  FrozenSet[Predicate],
-    distance:    int,
+    conclusion: Predicate,
+    shadow_set: FrozenSet[Predicate],
+    distance: int,
 ) -> str:
     """Build a human-readable explanation of the shadow.
 
@@ -585,6 +587,7 @@ def _build_explanation(
 # ─────────────────────────────────────────────────────────────────────────────
 #  INTEGRATION HELPER — for NeSyModel output
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def shadow_flags(report: ShadowReport) -> List[str]:
     """Generate flag strings from shadow report for inclusion in NSIOutput.flags."""

@@ -12,16 +12,17 @@ This allows existing HuggingFace pipelines to gain:
 Usage:
     from transformers import pipeline
     from nesy.integrations.huggingface import NeSyHFWrapper
-    
+
     hf_model = pipeline("text-classification", model="bert-base-uncased")
     nesy_model = NeSyHFWrapper(hf_model, rules=medical_rules)
     output = nesy_model.reason(text="Patient has fever")
 """
+
 from __future__ import annotations
 import logging
 from typing import Any, List, Optional
 from nesy.api.nesy_model import NeSyModel
-from nesy.core.types import ConceptEdge, NSIOutput, Predicate, SymbolicRule
+from nesy.core.types import ConceptEdge, NSIOutput, SymbolicRule
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +34,10 @@ class NeSyHFWrapper:
         self,
         hf_pipeline: Any,
         rules: Optional[List[SymbolicRule]] = None,
-        edges: Optional[List[ConceptEdge]]  = None,
+        edges: Optional[List[ConceptEdge]] = None,
         domain: str = "general",
     ):
-        self._hf   = hf_pipeline
+        self._hf = hf_pipeline
         self._nesy = NeSyModel(domain=domain)
         if rules:
             self._nesy.add_rules(rules)

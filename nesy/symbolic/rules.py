@@ -9,6 +9,7 @@ This module provides:
     2. RuleLoader    — load rules from YAML/JSON config files
     3. RuleValidator — validate rule sets for logical consistency
 """
+
 from __future__ import annotations
 
 import json
@@ -25,9 +26,10 @@ logger = logging.getLogger(__name__)
 #  RULE BUILDER  (fluent API)
 # ─────────────────────────────────────────────
 
+
 class RuleBuilder:
     """Fluent builder for SymbolicRule.
-    
+
     Example:
         rule = (RuleBuilder("fever_infection")
                 .if_fact("HasSymptom", "?p", "fever")
@@ -40,13 +42,13 @@ class RuleBuilder:
     """
 
     def __init__(self, rule_id: str):
-        self._id           = rule_id
+        self._id = rule_id
         self._antecedents: List[Predicate] = []
         self._consequents: List[Predicate] = []
-        self._weight       = 1.0
+        self._weight = 1.0
         self._domain: Optional[str] = None
-        self._immutable    = False
-        self._description  = ""
+        self._immutable = False
+        self._description = ""
 
     def if_fact(self, predicate_name: str, *args: str) -> "RuleBuilder":
         self._antecedents.append(Predicate(name=predicate_name, args=tuple(args)))
@@ -67,7 +69,7 @@ class RuleBuilder:
     def as_anchor(self) -> "RuleBuilder":
         """Mark as immutable symbolic anchor."""
         self._immutable = True
-        self._weight    = 1.0   # anchors are always hard constraints
+        self._weight = 1.0  # anchors are always hard constraints
         return self
 
     def description(self, text: str) -> "RuleBuilder":
@@ -94,9 +96,10 @@ class RuleBuilder:
 #  RULE LOADER
 # ─────────────────────────────────────────────
 
+
 class RuleLoader:
     """Load rules from JSON or dict config.
-    
+
     JSON format:
     [
       {
@@ -122,14 +125,8 @@ class RuleLoader:
         for item in data:
             rule = SymbolicRule(
                 id=item["id"],
-                antecedents=[
-                    Predicate(name=a[0], args=tuple(a[1:]))
-                    for a in item["antecedents"]
-                ],
-                consequents=[
-                    Predicate(name=c[0], args=tuple(c[1:]))
-                    for c in item["consequents"]
-                ],
+                antecedents=[Predicate(name=a[0], args=tuple(a[1:])) for a in item["antecedents"]],
+                consequents=[Predicate(name=c[0], args=tuple(c[1:])) for c in item["consequents"]],
                 weight=item.get("weight", 1.0),
                 domain=item.get("domain"),
                 immutable=item.get("immutable", False),
@@ -160,9 +157,10 @@ class RuleLoader:
 #  RULE VALIDATOR
 # ─────────────────────────────────────────────
 
+
 class RuleValidator:
     """Validate a rule set before loading into the engine.
-    
+
     Checks:
         1. No duplicate IDs
         2. No circular dependencies (A→B and B→A in hard rules)
@@ -216,9 +214,7 @@ class RuleValidator:
                         producer_rule = next((r for r in rules if r.id == producer), None)
                         if producer_rule:
                             my_consequent_names = {c.name for c in rule.consequents}
-                            producer_ant_names  = {a.name for a in producer_rule.antecedents}
+                            producer_ant_names = {a.name for a in producer_rule.antecedents}
                             if my_consequent_names & producer_ant_names:
-                                errors.append(
-                                    f"Circular dependency: '{rule.id}' ↔ '{producer}'"
-                                )
+                                errors.append(f"Circular dependency: '{rule.id}' ↔ '{producer}'")
         return errors

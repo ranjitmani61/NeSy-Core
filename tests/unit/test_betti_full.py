@@ -9,7 +9,6 @@ which provides components, coherence_score, diagnose, and from_trace.
 
 Target: 100% line coverage for nesy/symbolic/betti.py.
 """
-import pytest
 
 from nesy.core.types import Predicate, ReasoningStep
 from nesy.symbolic.betti import BettiAnalyser, betti_0
@@ -18,6 +17,7 @@ from nesy.symbolic.betti import BettiAnalyser, betti_0
 # ═══════════════════════════════════════════════════════════════════
 #  Re-exported betti_0
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestBetti0ReExport:
     """Verify the re-exported betti_0 behaves identically to logic.betti_0."""
@@ -77,8 +77,8 @@ class TestBetti0ReExport:
 #  BettiAnalyser.compute
 # ═══════════════════════════════════════════════════════════════════
 
-class TestBettiCompute:
 
+class TestBettiCompute:
     def test_compute_empty(self):
         assert BettiAnalyser.compute([]) == 0
 
@@ -97,8 +97,8 @@ class TestBettiCompute:
 #  BettiAnalyser.components
 # ═══════════════════════════════════════════════════════════════════
 
-class TestBettiComponents:
 
+class TestBettiComponents:
     def test_empty(self):
         assert BettiAnalyser.components([]) == []
 
@@ -166,8 +166,8 @@ class TestBettiComponents:
 #  BettiAnalyser.coherence_score
 # ═══════════════════════════════════════════════════════════════════
 
-class TestBettiCoherence:
 
+class TestBettiCoherence:
     def test_coherence_empty(self):
         """β₀ = 0 → coherence = 1.0 (vacuously coherent)."""
         assert BettiAnalyser.coherence_score([]) == 1.0
@@ -202,8 +202,8 @@ class TestBettiCoherence:
 #  BettiAnalyser.diagnose
 # ═══════════════════════════════════════════════════════════════════
 
-class TestBettiDiagnose:
 
+class TestBettiDiagnose:
     def test_diagnose_empty(self):
         result = BettiAnalyser.diagnose([])
         assert "No predicates" in result
@@ -244,8 +244,8 @@ class TestBettiDiagnose:
 #  BettiAnalyser.from_trace
 # ═══════════════════════════════════════════════════════════════════
 
-class TestBettiFromTrace:
 
+class TestBettiFromTrace:
     def test_from_trace_empty(self):
         b0, score, diag = BettiAnalyser.from_trace([])
         assert b0 == 0
@@ -315,8 +315,8 @@ class TestBettiFromTrace:
 #  Union-Find edge cases (covers betti.py lines 85, 88)
 # ═══════════════════════════════════════════════════════════════════
 
-class TestBettiUnionFindEdgeCases:
 
+class TestBettiUnionFindEdgeCases:
     def test_already_same_component_returns_early(self):
         """Two predicates sharing 2 args → union is called twice for same pair.
         Second call hits the 'ra == rb: return' branch (line 85)."""

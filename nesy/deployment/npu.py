@@ -14,10 +14,11 @@ The neural backbone is the NPU target.
 
 This module handles the handoff: NPU for embedding, CPU for reasoning.
 """
+
 from __future__ import annotations
 import logging
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 from nesy.neural.base import NeSyBackbone
 
 logger = logging.getLogger(__name__)
@@ -25,15 +26,15 @@ logger = logging.getLogger(__name__)
 
 class NPUBackboneWrapper(NeSyBackbone):
     """Wraps any NeSyBackbone with NPU-aware batching and timing.
-    
+
     In production, replace the _run_on_npu method with
     the vendor-specific NPU SDK call (Qualcomm QNN, Apple ANE, etc.)
     """
 
     def __init__(self, base_backbone: NeSyBackbone, target_latency_ms: int = 50):
-        self._base           = base_backbone
-        self.target_latency  = target_latency_ms
-        self._latency_log:   List[float] = []
+        self._base = base_backbone
+        self.target_latency = target_latency_ms
+        self._latency_log: List[float] = []
 
     def encode(self, input_data: Any) -> List[float]:
         t0 = time.perf_counter()

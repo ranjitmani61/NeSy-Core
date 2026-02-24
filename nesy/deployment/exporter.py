@@ -34,15 +34,16 @@ Reference:
     ONNX IR spec — https://onnx.ai/onnx/intro/concepts.html
     torch.onnx — https://pytorch.org/docs/stable/onnx.html
 """
+
 from __future__ import annotations
 
 import hashlib
 import json
 import logging
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from nesy.core.exceptions import NeSyError
 
@@ -52,6 +53,7 @@ logger = logging.getLogger(__name__)
 # ═══════════════════════════════════════════════════════════════════
 #  Export Manifest
 # ═══════════════════════════════════════════════════════════════════
+
 
 @dataclass
 class ExportManifest:
@@ -125,15 +127,13 @@ class ExportManifest:
                 f"Cannot load export manifest from '{path}': {exc}",
                 context={"path": path},
             )
-        return cls(**{
-            k: v for k, v in data.items()
-            if k in cls.__dataclass_fields__
-        })
+        return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
 
 # ═══════════════════════════════════════════════════════════════════
 #  Utility helpers
 # ═══════════════════════════════════════════════════════════════════
+
 
 def _sha256_file(path: str) -> str:
     """Compute SHA-256 hex digest of file at *path*.
@@ -231,6 +231,7 @@ def _validate_output_path(output_path: str) -> None:
 #  ModelExporter
 # ═══════════════════════════════════════════════════════════════════
 
+
 class ModelExporter:
     """Export neural backbone to ONNX / TFLite / CoreML.
 
@@ -305,8 +306,7 @@ class ModelExporter:
             import torch.onnx
         except ImportError:
             raise NeSyError(
-                "ONNX export requires PyTorch and ONNX. "
-                "Install with: pip install torch onnx",
+                "ONNX export requires PyTorch and ONNX. Install with: pip install torch onnx",
                 context={"missing_dependency": "torch/onnx"},
             )
 
@@ -319,9 +319,7 @@ class ModelExporter:
                 self._bb = bb
                 if hasattr(bb, "named_parameters"):
                     for pname, param in bb.named_parameters():
-                        self.register_parameter(
-                            pname.replace(".", "_"), param
-                        )
+                        self.register_parameter(pname.replace(".", "_"), param)
 
             def forward(self, x: "torch.Tensor") -> "torch.Tensor":
                 return self._bb.encode(x)
@@ -340,6 +338,7 @@ class ModelExporter:
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
         import warnings
+
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore",
@@ -459,24 +458,19 @@ class ModelExporter:
             )
 
         # ── Real TF Lite conversion ───────────────────────────────
-        import numpy as np
 
         class _TFWrapper(tf.Module):
             def __init__(self, bb: Any) -> None:
                 super().__init__()
                 self._bb = bb
 
-            @tf.function(input_signature=[
-                tf.TensorSpec(shape=[None, input_dim], dtype=tf.float32)
-            ])
+            @tf.function(input_signature=[tf.TensorSpec(shape=[None, input_dim], dtype=tf.float32)])
             def serve(self, x: Any) -> Any:
                 return _tflite_encode(self._bb, x, tf)
 
         wrapper = _TFWrapper(backbone)
         concrete_fn = wrapper.serve.get_concrete_function()
-        converter = tf.lite.TFLiteConverter.from_concrete_functions(
-            [concrete_fn]
-        )
+        converter = tf.lite.TFLiteConverter.from_concrete_functions([concrete_fn])
 
         quant_mode = "none"
         if quantise:
@@ -570,7 +564,7 @@ class ModelExporter:
                 "CoreML export requires coremltools and PyTorch. "
                 f"A staged ONNX artifact has been written to '{onnx_path}'. "
                 "Convert it with: pip install coremltools && "
-                "python -c \"import coremltools as ct; "
+                'python -c "import coremltools as ct; '
                 "m = ct.converters.onnx.convert(model='model.onnx'); "
                 "m.save('model.mlpackage')\"",
                 context={
@@ -599,9 +593,7 @@ class ModelExporter:
             traced,
             inputs=[ct.TensorType(name="input", shape=(1, input_dim))],
         )
-        mlmodel.short_description = (
-            f"{model_name} — NeSy-Core neural backbone"
-        )
+        mlmodel.short_description = f"{model_name} — NeSy-Core neural backbone"
 
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         mlmodel.save(output_path)
@@ -722,9 +714,7 @@ class ModelExporter:
 
         # Write combined bundle manifest
         bundle_manifest_path = str(Path(output_dir) / "manifest.json")
-        bundle_data = {
-            fmt: m.to_dict() for fmt, m in manifests.items()
-        }
+        bundle_data = {fmt: m.to_dict() for fmt, m in manifests.items()}
         Path(bundle_manifest_path).write_text(
             json.dumps(bundle_data, indent=2, default=str),
             encoding="utf-8",
@@ -736,4 +726,3 @@ class ModelExporter:
         )
 
         return manifests
-

@@ -18,13 +18,14 @@ Usage:
     wrapper = NeSyOpenAIWrapper(openai_client, model)
     result = wrapper.chat_with_reasoning(messages=[...], facts={...})
 """
+
 from __future__ import annotations
 
 import logging
 from typing import Any, Dict, List, Optional, Set
 
 from nesy.api.nesy_model import NeSyModel
-from nesy.core.types import NSIOutput, Predicate
+from nesy.core.types import Predicate
 
 logger = logging.getLogger(__name__)
 
@@ -50,9 +51,7 @@ class NeSyOpenAIWrapper:
 
     def __init__(self, openai_client: Any, nesy_model: NeSyModel) -> None:
         if not isinstance(nesy_model, NeSyModel):
-            raise TypeError(
-                f"nesy_model must be a NeSyModel, got {type(nesy_model).__name__}"
-            )
+            raise TypeError(f"nesy_model must be a NeSyModel, got {type(nesy_model).__name__}")
         self._client = openai_client
         self._nesy = nesy_model
         logger.info("NeSyOpenAIWrapper initialised.")

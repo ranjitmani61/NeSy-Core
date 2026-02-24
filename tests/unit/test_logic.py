@@ -3,10 +3,13 @@ tests/unit/test_logic.py
 ========================
 Tests for symbolic logic primitives: unification, resolution, Betti number.
 """
-import pytest
+
 from nesy.symbolic.logic import (
-    unify, apply_substitution, resolve_clauses,
-    is_satisfiable, betti_0, forward_chain,
+    unify,
+    apply_substitution,
+    is_satisfiable,
+    betti_0,
+    forward_chain,
 )
 from nesy.core.types import Predicate, SymbolicRule
 
@@ -30,7 +33,7 @@ class TestUnification:
 
     def test_unify_name_mismatch(self):
         p1 = Predicate("HasSymptom", ("?p", "fever"))
-        p2 = Predicate("HasAllergy",  ("?p", "fever"))
+        p2 = Predicate("HasAllergy", ("?p", "fever"))
         assert unify(p1, p2) is None
 
     def test_apply_substitution(self):
@@ -44,11 +47,9 @@ class TestResolution:
     def test_resolution_finds_contradiction(self):
         # {P} and {¬P} → empty resolvent (contradiction)
         from nesy.symbolic.logic import negate_predicate
+
         p = Predicate("HasDisease", ("patient_1",))
-        clauses = [
-            frozenset([p]),
-            frozenset([negate_predicate(p)])
-        ]
+        clauses = [frozenset([p]), frozenset([negate_predicate(p)])]
         assert is_satisfiable(clauses) is False
 
     def test_satisfiable_independent_clauses(self):

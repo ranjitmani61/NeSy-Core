@@ -10,13 +10,14 @@ Mathematical basis (Platt Scaling):
         f(x) = raw confidence score from monitor
         A, B = learned calibration parameters
         σ    = sigmoid function
-    
+
     Calibration is measured by Expected Calibration Error (ECE):
         ECE = Σₘ (|Bₘ|/n) × |acc(Bₘ) - conf(Bₘ)|
-        
+
     Where Bₘ are confidence bins, acc = actual accuracy, conf = predicted confidence.
     ECE = 0 is perfectly calibrated.
 """
+
 from __future__ import annotations
 
 import math
@@ -28,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 class ConfidenceCalibrator:
     """Platt-scaling calibrator for NeSy-Core confidence scores.
-    
+
     Usage:
         calibrator = ConfidenceCalibrator()
         # After collecting (predicted_confidence, was_correct) pairs:
@@ -38,14 +39,14 @@ class ConfidenceCalibrator:
 
     def __init__(self, n_bins: int = 10):
         self.n_bins = n_bins
-        self._A: float = 1.0     # Platt scaling slope
-        self._B: float = 0.0     # Platt scaling bias
+        self._A: float = 1.0  # Platt scaling slope
+        self._B: float = 0.0  # Platt scaling bias
         self._fitted: bool = False
         self._ece: Optional[float] = None
 
     def fit(self, data: List[Tuple[float, bool]]) -> "ConfidenceCalibrator":
         """Fit calibration parameters from (predicted_confidence, actual_correct) pairs.
-        
+
         Minimum 100 samples recommended for reliable calibration.
         """
         if len(data) < 10:
@@ -53,7 +54,7 @@ class ConfidenceCalibrator:
             return self
 
         predictions = [d[0] for d in data]
-        labels      = [1.0 if d[1] else 0.0 for d in data]
+        labels = [1.0 if d[1] else 0.0 for d in data]
 
         # Simple gradient descent for Platt scaling
         self._A, self._B = self._fit_platt(predictions, labels)
@@ -77,9 +78,9 @@ class ConfidenceCalibrator:
     def _fit_platt(
         self,
         predictions: List[float],
-        labels:      List[float],
-        lr:          float = 0.01,
-        steps:       int   = 500,
+        labels: List[float],
+        lr: float = 0.01,
+        steps: int = 500,
     ) -> Tuple[float, float]:
         """Gradient descent for Platt scaling parameters."""
         A, B = 1.0, 0.0
@@ -89,9 +90,9 @@ class ConfidenceCalibrator:
             dA = dB = 0.0
             for p, y in zip(predictions, labels):
                 prob = self._sigmoid(A * p + B)
-                err  = prob - y
-                dA  += err * p
-                dB  += err
+                err = prob - y
+                dA += err * p
+                dB += err
             A -= lr * dA / n
             B -= lr * dB / n
 
@@ -105,12 +106,12 @@ class ConfidenceCalibrator:
             bins[idx].append((conf, correct))
 
         ece = 0.0
-        n   = len(data)
+        n = len(data)
         for b in bins:
             if not b:
                 continue
             avg_conf = sum(x[0] for x in b) / len(b)
-            avg_acc  = sum(1 for x in b if x[1]) / len(b)
+            avg_acc = sum(1 for x in b if x[1]) / len(b)
             ece += (len(b) / n) * abs(avg_acc - avg_conf)
         return ece
 

@@ -29,7 +29,6 @@ import pytest
 
 from nesy.api.nesy_model import (
     ContradictionReport,
-    CounterfactualFix,
     NeSyModel,
 )
 from nesy.core.exceptions import SymbolicConflict
@@ -66,6 +65,7 @@ from nesy.symbolic.unsat_explanation import (
 # ═══════════════════════════════════════════════════════════════════
 #  FIXTURES
 # ═══════════════════════════════════════════════════════════════════
+
 
 @pytest.fixture
 def sample_rules_db():
@@ -137,6 +137,7 @@ def sample_null_set():
 #  UnsatCore DATACLASS TESTS
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestUnsatCoreDataclass:
     """Tests for the UnsatCore type in nesy/core/types.py."""
 
@@ -201,8 +202,8 @@ class TestUnsatCoreDataclass:
 #  SymbolicConflict WITH UnsatCore
 # ═══════════════════════════════════════════════════════════════════
 
-class TestSymbolicConflictWithUnsatCore:
 
+class TestSymbolicConflictWithUnsatCore:
     def test_default_unsat_core_is_none(self):
         exc = SymbolicConflict("test", conflicting_rules=["r1"])
         assert exc.unsat_core is None
@@ -213,7 +214,9 @@ class TestSymbolicConflictWithUnsatCore:
             explanation="Test conflict",
         )
         exc = SymbolicConflict(
-            "test", conflicting_rules=["r1"], unsat_core=core,
+            "test",
+            conflicting_rules=["r1"],
+            unsat_core=core,
         )
         assert exc.unsat_core is core
         assert exc.unsat_core.explanation == "Test conflict"
@@ -230,8 +233,8 @@ class TestSymbolicConflictWithUnsatCore:
 #  _predicate_matches TESTS
 # ═══════════════════════════════════════════════════════════════════
 
-class TestPredicateMatches:
 
+class TestPredicateMatches:
     def test_exact_match(self):
         p = Predicate("HasSymptom", ("patient_1", "fever"))
         f = Predicate("HasSymptom", ("patient_1", "fever"))
@@ -272,8 +275,8 @@ class TestPredicateMatches:
 #  _predicate_to_concept TESTS
 # ═══════════════════════════════════════════════════════════════════
 
-class TestPredicateToConcept:
 
+class TestPredicateToConcept:
     def test_last_non_variable(self):
         p = Predicate("HasSymptom", ("?p", "fever"))
         assert _predicate_to_concept(p) == "fever"
@@ -299,15 +302,18 @@ class TestPredicateToConcept:
 #  _generate_explanation_text TESTS
 # ═══════════════════════════════════════════════════════════════════
 
-class TestGenerateExplanationText:
 
+class TestGenerateExplanationText:
     def test_no_rules(self):
         text = _generate_explanation_text([], [], [], set())
         assert text == "No conflicting rules identified."
 
     def test_single_rule(self):
         text = _generate_explanation_text(
-            ["r1"], ["fever → infection"], [], set(),
+            ["r1"],
+            ["fever → infection"],
+            [],
+            set(),
         )
         assert "Rule 'r1' is violated" in text
 
@@ -357,8 +363,8 @@ class TestGenerateExplanationText:
 #  _analyse_antecedent_conflict TESTS
 # ═══════════════════════════════════════════════════════════════════
 
-class TestAnalyseAntecedentConflict:
 
+class TestAnalyseAntecedentConflict:
     def test_empty_rules(self):
         assert _analyse_antecedent_conflict([], set()) == ""
 
@@ -389,8 +395,8 @@ class TestAnalyseAntecedentConflict:
 #  _propose_repairs TESTS
 # ═══════════════════════════════════════════════════════════════════
 
-class TestProposeRepairs:
 
+class TestProposeRepairs:
     def test_empty_rules(self):
         suggested, repairs = _propose_repairs([], set())
         assert suggested == []
@@ -443,8 +449,8 @@ class TestProposeRepairs:
 #  explain_unsat_core TESTS
 # ═══════════════════════════════════════════════════════════════════
 
-class TestExplainUnsatCore:
 
+class TestExplainUnsatCore:
     def test_basic(self, sample_rules_db, sample_facts):
         core = explain_unsat_core(
             conflicting_rule_ids=["rule_fever_infection", "rule_allergy_block"],
@@ -513,8 +519,8 @@ class TestExplainUnsatCore:
 #  explain_constraint_violations TESTS
 # ═══════════════════════════════════════════════════════════════════
 
-class TestExplainConstraintViolations:
 
+class TestExplainConstraintViolations:
     def test_basic(self):
         core = explain_constraint_violations(
             constraint_ids=[0, 1],
@@ -557,8 +563,8 @@ class TestExplainConstraintViolations:
 #  enrich_with_null_set TESTS
 # ═══════════════════════════════════════════════════════════════════
 
-class TestEnrichWithNullSet:
 
+class TestEnrichWithNullSet:
     def test_none_null_set(self):
         core = UnsatCore(explanation="original")
         enriched = enrich_with_null_set(core, None)
@@ -578,8 +584,7 @@ class TestEnrichWithNullSet:
         core = UnsatCore(conflicting_rule_ids=["r1"])
         enriched = enrich_with_null_set(core, sample_null_set)
         critical_repairs = [
-            r for r in enriched.repair_actions
-            if r["action"] == "add_critical_concept"
+            r for r in enriched.repair_actions if r["action"] == "add_critical_concept"
         ]
         assert len(critical_repairs) >= 1
         assert critical_repairs[0]["concept"] == "blood_test"
@@ -592,8 +597,7 @@ class TestEnrichWithNullSet:
         )
         enriched = enrich_with_null_set(core, sample_null_set)
         confirm_repairs = [
-            r for r in enriched.repair_actions
-            if r["action"] == "confirm_meaningful_null"
+            r for r in enriched.repair_actions if r["action"] == "confirm_meaningful_null"
         ]
         assert len(confirm_repairs) >= 1
 
@@ -621,18 +625,20 @@ class TestEnrichWithNullSet:
 #  format_contradiction_report TESTS
 # ═══════════════════════════════════════════════════════════════════
 
-class TestFormatContradictionReport:
 
+class TestFormatContradictionReport:
     def test_basic_format(self):
         core = UnsatCore(
             conflicting_rule_ids=["r1", "r2"],
             explanation="Two rules conflict.",
             suggested_additions=["blood_test"],
-            repair_actions=[{
-                "action": "add_fact",
-                "concept": "blood_test",
-                "reason": "Adding blood_test resolves the issue.",
-            }],
+            repair_actions=[
+                {
+                    "action": "add_fact",
+                    "concept": "blood_test",
+                    "reason": "Adding blood_test resolves the issue.",
+                }
+            ],
         )
         report = format_contradiction_report(core)
         assert "CONTRADICTION DETECTED" in report
@@ -658,10 +664,8 @@ class TestFormatContradictionReport:
             explanation="Conflict.",
             suggested_additions=["concept_a", "concept_b"],
             repair_actions=[
-                {"action": "add_fact", "concept": "concept_a",
-                 "reason": "Reason A."},
-                {"action": "add_fact", "concept": "concept_b",
-                 "reason": "Reason B."},
+                {"action": "add_fact", "concept": "concept_a", "reason": "Reason A."},
+                {"action": "add_fact", "concept": "concept_b", "reason": "Reason B."},
             ],
         )
         report = format_contradiction_report(core)
@@ -685,8 +689,8 @@ class TestFormatContradictionReport:
 #  SymbolicEngine.check_consistency WITH UnsatCore
 # ═══════════════════════════════════════════════════════════════════
 
-class TestSymbolicEngineUnsatCore:
 
+class TestSymbolicEngineUnsatCore:
     def test_consistency_attaches_unsat_core(self):
         """When check_consistency detects a contradiction, UnsatCore is attached.
 
@@ -742,7 +746,10 @@ class TestSymbolicEngineUnsatCore:
             explanation="Test conflict explanation",
         )
         exc = SymbolicConflict(
-            "conflict", ["r1"], {"fact_count": 1}, unsat_core=core,
+            "conflict",
+            ["r1"],
+            {"fact_count": 1},
+            unsat_core=core,
         )
 
         with patch.object(model._symbolic, "reason", side_effect=exc):
@@ -774,8 +781,8 @@ class TestSymbolicEngineUnsatCore:
 #  ConstraintSolver → UnsatCore INTEGRATION
 # ═══════════════════════════════════════════════════════════════════
 
-class TestConstraintSolverUnsatCore:
 
+class TestConstraintSolverUnsatCore:
     def test_satisfiable_no_unsat_core(self):
         solver = ConstraintSolver()
         solver.add_constraint(ArithmeticConstraint("x", "<=", 100))
@@ -815,8 +822,8 @@ class TestConstraintSolverUnsatCore:
 #  NeSyModel.explain_contradiction TESTS
 # ═══════════════════════════════════════════════════════════════════
 
-class TestExplainContradiction:
 
+class TestExplainContradiction:
     def _make_rejected_model(self):
         """Helper: create a model with a real contradiction rule."""
         model = NeSyModel(domain="medical")
@@ -859,11 +866,15 @@ class TestExplainContradiction:
 
     def test_explain_with_null_set_enrichment(self):
         model = NeSyModel(domain="medical")
-        model.add_concept_edge(ConceptEdge(
-            source="fever", target="blood_test",
-            cooccurrence_prob=0.9, causal_strength=1.0,
-            temporal_stability=1.0,
-        ))
+        model.add_concept_edge(
+            ConceptEdge(
+                source="fever",
+                target="blood_test",
+                cooccurrence_prob=0.9,
+                causal_strength=1.0,
+                temporal_stability=1.0,
+            )
+        )
         model.register_critical_concept("blood_test", "diagnostic")
 
         hard_rule = SymbolicRule(
@@ -890,11 +901,13 @@ class TestExplainContradiction:
         core = UnsatCore(
             conflicting_rule_ids=["r1"],
             explanation="Test",
-            repair_actions=[{
-                "action": "add_fact",
-                "concept": "missing_concept",
-                "reason": "Add missing_concept to resolve.",
-            }],
+            repair_actions=[
+                {
+                    "action": "add_fact",
+                    "concept": "missing_concept",
+                    "reason": "Add missing_concept to resolve.",
+                }
+            ],
         )
         exc = SymbolicConflict("conflict", ["r1"], unsat_core=core)
 
@@ -902,9 +915,7 @@ class TestExplainContradiction:
             output = model.reason(facts={Predicate("A", ("x",))})
 
         report = model.explain_contradiction(output)
-        unsat_fixes = [
-            f for f in report.fixes if f.source_null_type == "UNSAT_CORE"
-        ]
+        unsat_fixes = [f for f in report.fixes if f.source_null_type == "UNSAT_CORE"]
         assert len(unsat_fixes) >= 1
         assert unsat_fixes[0].missing_concept == "missing_concept"
 
@@ -936,21 +947,18 @@ class TestExplainContradiction:
 #  ContradictionReport DATACLASS
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestContradictionReport:
-
     def test_dataclass_fields(self):
-        from nesy.core.types import (
-            ConfidenceReport,
-            NullSet,
-            PresentSet,
-            ReasoningStep,
-            ReasoningTrace,
-        )
 
-        dummy_output = type("FakeOutput", (), {
-            "answer": "test",
-            "status": OutputStatus.REJECTED,
-        })()
+        dummy_output = type(
+            "FakeOutput",
+            (),
+            {
+                "answer": "test",
+                "status": OutputStatus.REJECTED,
+            },
+        )()
 
         core = UnsatCore(
             conflicting_rule_ids=["r1"],
@@ -976,8 +984,8 @@ class TestContradictionReport:
 #  END-TO-END: Full pipeline test
 # ═══════════════════════════════════════════════════════════════════
 
-class TestEndToEnd:
 
+class TestEndToEnd:
     def test_full_auditor_pipeline(self):
         """Full pipeline: conflict → explain → report → fixes (via mock)."""
         from unittest.mock import patch
@@ -985,27 +993,36 @@ class TestEndToEnd:
         model = NeSyModel(domain="medical")
 
         # Set up rules
-        model.add_rule(SymbolicRule(
-            id="fever_implies_antibiotic",
-            antecedents=[Predicate("HasSymptom", ("?p", "fever"))],
-            consequents=[Predicate("Prescribed", ("?p", "amoxicillin"))],
-            weight=0.95,
-            description="Fever → prescribe amoxicillin",
-        ))
-        model.add_rule(SymbolicRule(
-            id="allergy_blocks_amoxicillin",
-            antecedents=[Predicate("HasAllergy", ("?p", "amoxicillin"))],
-            consequents=[Predicate("Contraindication", ("?p", "amoxicillin"))],
-            weight=1.0,
-            immutable=True,
-            description="Amoxicillin allergy → contraindication",
-        ))
+        model.add_rule(
+            SymbolicRule(
+                id="fever_implies_antibiotic",
+                antecedents=[Predicate("HasSymptom", ("?p", "fever"))],
+                consequents=[Predicate("Prescribed", ("?p", "amoxicillin"))],
+                weight=0.95,
+                description="Fever → prescribe amoxicillin",
+            )
+        )
+        model.add_rule(
+            SymbolicRule(
+                id="allergy_blocks_amoxicillin",
+                antecedents=[Predicate("HasAllergy", ("?p", "amoxicillin"))],
+                consequents=[Predicate("Contraindication", ("?p", "amoxicillin"))],
+                weight=1.0,
+                immutable=True,
+                description="Amoxicillin allergy → contraindication",
+            )
+        )
 
         # Add concept edges for NSI
-        model.add_concept_edge(ConceptEdge(
-            "fever", "blood_test",
-            cooccurrence_prob=0.9, causal_strength=1.0, temporal_stability=1.0,
-        ))
+        model.add_concept_edge(
+            ConceptEdge(
+                "fever",
+                "blood_test",
+                cooccurrence_prob=0.9,
+                causal_strength=1.0,
+                temporal_stability=1.0,
+            )
+        )
         model.register_critical_concept("blood_test", "diagnostic")
 
         # Build the UnsatCore that would come from the engine
@@ -1023,11 +1040,13 @@ class TestEndToEnd:
                 "  • allergy_blocks_amoxicillin: Amoxicillin allergy → contraindication"
             ),
             suggested_additions=["alternative_antibiotic"],
-            repair_actions=[{
-                "action": "add_fact",
-                "concept": "alternative_antibiotic",
-                "reason": "Consider prescribing an alternative antibiotic.",
-            }],
+            repair_actions=[
+                {
+                    "action": "add_fact",
+                    "concept": "alternative_antibiotic",
+                    "reason": "Consider prescribing an alternative antibiotic.",
+                }
+            ],
         )
         exc = SymbolicConflict(
             "Contradiction between fever treatment and allergy",
@@ -1060,13 +1079,15 @@ class TestEndToEnd:
     def test_full_auditor_real_resolution(self):
         """Real contradiction via resolution (no mocking)."""
         model = NeSyModel(domain="test")
-        model.add_rule(SymbolicRule(
-            id="real_contradiction",
-            antecedents=[Predicate("NOT_A", ("?x",))],
-            consequents=[Predicate("A", ("?x",))],
-            weight=1.0,
-            description="Creates real contradiction",
-        ))
+        model.add_rule(
+            SymbolicRule(
+                id="real_contradiction",
+                antecedents=[Predicate("NOT_A", ("?x",))],
+                consequents=[Predicate("A", ("?x",))],
+                weight=1.0,
+                description="Creates real contradiction",
+            )
+        )
 
         output = model.reason(facts={Predicate("A", ("x",))})
         assert output.status == OutputStatus.REJECTED
@@ -1078,13 +1099,15 @@ class TestEndToEnd:
     def test_no_conflict_explain_is_safe(self):
         """explain_contradiction on a non-rejected output is safe."""
         model = NeSyModel(domain="general")
-        model.add_rule(SymbolicRule(
-            id="simple",
-            antecedents=[Predicate("A", ("x",))],
-            consequents=[Predicate("B", ("x",))],
-            weight=0.5,
-            description="Simple soft rule",
-        ))
+        model.add_rule(
+            SymbolicRule(
+                id="simple",
+                antecedents=[Predicate("A", ("x",))],
+                consequents=[Predicate("B", ("x",))],
+                weight=0.5,
+                description="Simple soft rule",
+            )
+        )
         output = model.reason(facts={Predicate("A", ("x",))})
         report = model.explain_contradiction(output)
         assert "No contradiction" in report.unsat_core.explanation

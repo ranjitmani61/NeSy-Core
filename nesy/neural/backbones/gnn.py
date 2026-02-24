@@ -9,17 +9,18 @@ via GNN to produce richer embeddings than text-only models.
 
 Mathematical basis (Graph Convolutional Network):
     h⁽ˡ⁺¹⁾ᵥ = σ( Σᵤ∈N(v) (1/√dᵥdᵤ) W⁽ˡ⁾ h⁽ˡ⁾ᵤ )
-    
+
     Where:
         h⁽ˡ⁾ᵥ  = node v's embedding at layer l
         N(v)    = neighbours of v
         dᵥ      = degree of v (normalisation)
         W⁽ˡ⁾    = learnable weight matrix at layer l
         σ       = ReLU activation
-    
+
     After L layers, h⁽ᴸ⁾ᵥ captures L-hop neighbourhood structure.
     Graph embedding = mean pooling over all node embeddings.
 """
+
 from __future__ import annotations
 
 import math
@@ -33,24 +34,25 @@ logger = logging.getLogger(__name__)
 
 class GraphInput:
     """Structured graph input for GNN backbone."""
+
     def __init__(
         self,
-        node_features: List[List[float]],   # shape: [n_nodes, feature_dim]
-        edge_list:     List[Tuple[int, int]], # list of (src, tgt) indices
-        edge_weights:  Optional[List[float]] = None,
+        node_features: List[List[float]],  # shape: [n_nodes, feature_dim]
+        edge_list: List[Tuple[int, int]],  # list of (src, tgt) indices
+        edge_weights: Optional[List[float]] = None,
     ):
         self.node_features = node_features
-        self.edge_list     = edge_list
-        self.edge_weights  = edge_weights or [1.0] * len(edge_list)
-        self.n_nodes       = len(node_features)
+        self.edge_list = edge_list
+        self.edge_weights = edge_weights or [1.0] * len(edge_list)
+        self.n_nodes = len(node_features)
 
 
 class SimpleGNNBackbone(NeSyBackbone):
     """Pure-Python GCN implementation (no PyTorch needed).
-    
+
     For production use with large graphs, replace with
     PyTorch Geometric (see integrations/pytorch_lightning.py).
-    
+
     This implementation:
     - 2-layer GCN
     - Mean pooling for graph-level embedding
@@ -58,11 +60,11 @@ class SimpleGNNBackbone(NeSyBackbone):
     """
 
     def __init__(self, input_dim: int, hidden_dim: int = 128, output_dim: int = 64):
-        self._input_dim  = input_dim
+        self._input_dim = input_dim
         self._hidden_dim = hidden_dim
         self._output_dim = output_dim
         # Random initialisation — replace with trained weights in production
-        self._W1 = self._random_matrix(input_dim,  hidden_dim)
+        self._W1 = self._random_matrix(input_dim, hidden_dim)
         self._W2 = self._random_matrix(hidden_dim, output_dim)
 
     def encode(self, input_data: Any) -> List[float]:
@@ -78,7 +80,7 @@ class SimpleGNNBackbone(NeSyBackbone):
         adj: Dict[int, List[Tuple[int, float]]] = {i: [(i, 1.0)] for i in range(n)}
         for (src, tgt), w in zip(graph.edge_list, graph.edge_weights):
             adj[src].append((tgt, w))
-            adj[tgt].append((src, w))   # undirected
+            adj[tgt].append((src, w))  # undirected
 
         # Degree computation for normalisation
         degree = {i: sum(w for _, w in neighbors) for i, neighbors in adj.items()}
@@ -90,18 +92,15 @@ class SimpleGNNBackbone(NeSyBackbone):
         h = self._gcn_layer(h, adj, degree, self._W2, activation="none")
 
         # Mean pooling over all nodes → graph embedding
-        graph_emb = [
-            sum(h[i][j] for i in range(n)) / n
-            for j in range(self._output_dim)
-        ]
+        graph_emb = [sum(h[i][j] for i in range(n)) / n for j in range(self._output_dim)]
         return graph_emb
 
     def _gcn_layer(
         self,
-        h:          List[List[float]],
-        adj:        Dict[int, List[Tuple[int, float]]],
-        degree:     Dict[int, float],
-        W:          List[List[float]],
+        h: List[List[float]],
+        adj: Dict[int, List[Tuple[int, float]]],
+        degree: Dict[int, float],
+        W: List[List[float]],
         activation: str,
     ) -> List[List[float]]:
         """One GCN layer: h_new = σ(A_norm × h × W)"""
@@ -132,6 +131,7 @@ class SimpleGNNBackbone(NeSyBackbone):
     def _random_matrix(rows: int, cols: int) -> List[List[float]]:
         """Xavier-uniform initialisation: U(-√(6/(r+c)), √(6/(r+c)))"""
         import random
+
         limit = math.sqrt(6.0 / (rows + cols))
         return [[random.uniform(-limit, limit) for _ in range(cols)] for _ in range(rows)]
 

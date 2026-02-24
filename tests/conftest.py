@@ -3,6 +3,7 @@ tests/conftest.py
 ==================
 Shared pytest fixtures for all NeSy-Core tests.
 """
+
 import pytest
 from nesy.api.nesy_model import NeSyModel
 from nesy.core.types import ConceptEdge, Predicate, SymbolicRule
@@ -11,6 +12,7 @@ from nesy.symbolic.engine import SymbolicEngine
 
 
 # ─── RULES ────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def fever_infection_rule():
@@ -33,7 +35,7 @@ def hard_contraindication_rule():
         id="penicillin_allergy",
         antecedents=[
             Predicate("HasAllergy", ("?p", "penicillin")),
-            Predicate("Prescribed",  ("?p", "penicillin")),
+            Predicate("Prescribed", ("?p", "penicillin")),
         ],
         consequents=[Predicate("ContraindicationViolated", ("?p", "penicillin"))],
         weight=1.0,
@@ -49,13 +51,24 @@ def basic_rules(fever_infection_rule, hard_contraindication_rule):
 
 # ─── CONCEPT GRAPH ────────────────────────────────────────────────
 
+
 @pytest.fixture
 def fever_edges():
     return [
-        ConceptEdge("fever", "blood_test",
-                    cooccurrence_prob=0.90, causal_strength=1.0, temporal_stability=1.0),
-        ConceptEdge("fever", "temperature_reading",
-                    cooccurrence_prob=0.95, causal_strength=1.0, temporal_stability=1.0),
+        ConceptEdge(
+            "fever",
+            "blood_test",
+            cooccurrence_prob=0.90,
+            causal_strength=1.0,
+            temporal_stability=1.0,
+        ),
+        ConceptEdge(
+            "fever",
+            "temperature_reading",
+            cooccurrence_prob=0.95,
+            causal_strength=1.0,
+            temporal_stability=1.0,
+        ),
     ]
 
 
@@ -69,6 +82,7 @@ def concept_graph(fever_edges):
 
 
 # ─── MODELS ───────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def medical_model(basic_rules, fever_edges):
@@ -89,6 +103,7 @@ def symbolic_engine(basic_rules):
 
 # ─── PREDICATES ───────────────────────────────────────────────────
 
+
 @pytest.fixture
 def fever_facts():
     return {
@@ -101,5 +116,5 @@ def fever_facts():
 def contraindication_facts():
     return {
         Predicate("HasAllergy", ("patient_test", "penicillin")),
-        Predicate("Prescribed",  ("patient_test", "penicillin")),
+        Predicate("Prescribed", ("patient_test", "penicillin")),
     }

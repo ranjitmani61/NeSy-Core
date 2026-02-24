@@ -18,13 +18,12 @@ Strategy
 
 All temp files go into ``tmp_path`` (pytest auto-cleanup).
 """
+
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
-from types import SimpleNamespace
-from typing import Any, Dict, List, Optional
+from typing import Any
 from unittest.mock import MagicMock, patch
 import hashlib
 
@@ -48,6 +47,7 @@ from nesy.deployment.exporter import (
 #  Fixtures
 # ════════════════════════════════════════════════════════════════════
 
+
 class _TinyBackbone(nn.Module):
     """Minimal torch backbone that satisfies NeSyBackbone contract."""
 
@@ -66,6 +66,7 @@ class _TinyBackbone(nn.Module):
 
 class _NoEncodeBackbone:
     """Object that has no encode() — should be rejected."""
+
     pass
 
 
@@ -94,8 +95,7 @@ class TestExportManifest:
     """ExportManifest dataclass lifecycle."""
 
     def test_defaults_populate_timestamp(self):
-        m = ExportManifest(model_name="A", domain="d", export_format="onnx",
-                           input_shape=[1, 16])
+        m = ExportManifest(model_name="A", domain="d", export_format="onnx", input_shape=[1, 16])
         assert m.timestamp  # auto-populated
         assert m.checksum == ""
         assert m.output_shape is None
@@ -105,8 +105,11 @@ class TestExportManifest:
 
     def test_to_dict_returns_plain_dict(self):
         m = ExportManifest(
-            model_name="B", domain="gen", export_format="tflite",
-            input_shape=[1, 32], checksum="abc123",
+            model_name="B",
+            domain="gen",
+            export_format="tflite",
+            input_shape=[1, 32],
+            checksum="abc123",
         )
         d = m.to_dict()
         assert isinstance(d, dict)
@@ -116,10 +119,15 @@ class TestExportManifest:
 
     def test_save_and_load_round_trip(self, tmp_path):
         m = ExportManifest(
-            model_name="RT", domain="d", export_format="onnx",
-            input_shape=[1, 64], output_shape=[1, 64],
-            quantization_mode="dynamic", checksum="deadbeef",
-            reasoning_config={"key": "val"}, artifact_path="/tmp/model.onnx",
+            model_name="RT",
+            domain="d",
+            export_format="onnx",
+            input_shape=[1, 64],
+            output_shape=[1, 64],
+            quantization_mode="dynamic",
+            checksum="deadbeef",
+            reasoning_config={"key": "val"},
+            artifact_path="/tmp/model.onnx",
         )
         json_path = str(tmp_path / "manifest.json")
         m.save(json_path)
@@ -133,8 +141,7 @@ class TestExportManifest:
 
     def test_save_creates_parent_dir(self, tmp_path):
         deep_path = str(tmp_path / "a" / "b" / "manifest.json")
-        m = ExportManifest(model_name="x", domain="d", export_format="onnx",
-                           input_shape=[1, 8])
+        m = ExportManifest(model_name="x", domain="d", export_format="onnx", input_shape=[1, 8])
         m.save(deep_path)
         assert Path(deep_path).exists()
 
@@ -150,8 +157,11 @@ class TestExportManifest:
 
     def test_load_ignores_extra_keys(self, tmp_path):
         data = {
-            "model_name": "Z", "domain": "d", "export_format": "onnx",
-            "input_shape": [1, 4], "extra_garbage": True,
+            "model_name": "Z",
+            "domain": "d",
+            "export_format": "onnx",
+            "input_shape": [1, 4],
+            "extra_garbage": True,
         }
         p = tmp_path / "extra.json"
         p.write_text(json.dumps(data), encoding="utf-8")
@@ -161,8 +171,11 @@ class TestExportManifest:
 
     def test_custom_timestamp_preserved(self):
         m = ExportManifest(
-            model_name="T", domain="d", export_format="onnx",
-            input_shape=[1, 8], timestamp="2024-01-01T00:00:00+00:00",
+            model_name="T",
+            domain="d",
+            export_format="onnx",
+            input_shape=[1, 8],
+            timestamp="2024-01-01T00:00:00+00:00",
         )
         assert m.timestamp == "2024-01-01T00:00:00+00:00"
 
@@ -173,7 +186,6 @@ class TestExportManifest:
 
 
 class TestValidationHelpers:
-
     def test_validate_backbone_ok(self, tiny_backbone):
         _validate_backbone(tiny_backbone)  # should not raise
 
@@ -204,7 +216,6 @@ class TestValidationHelpers:
 
 
 class TestSha256File:
-
     def test_known_hash(self, tmp_path):
         f = tmp_path / "data.bin"
         data = b"hello world"
@@ -265,7 +276,6 @@ class TestTfliteEncode:
 
 
 class TestOnnxExport:
-
     def test_basic_export(self, tiny_backbone, tmp_path):
         out = str(tmp_path / "model.onnx")
         manifest = ModelExporter.to_onnx(tiny_backbone, out, input_dim=16)
@@ -283,6 +293,7 @@ class TestOnnxExport:
     def test_onnx_model_is_valid(self, tiny_backbone, tmp_path):
         """onnx.checker validates the exported graph."""
         import onnx
+
         out = str(tmp_path / "valid.onnx")
         ModelExporter.to_onnx(tiny_backbone, out, input_dim=16)
         model = onnx.load(out)
@@ -299,18 +310,19 @@ class TestOnnxExport:
     def test_custom_opset(self, tiny_backbone, tmp_path):
         """Opset is respected (torch 2.10 may upgrade to min 18)."""
         out = str(tmp_path / "opset18.onnx")
-        m = ModelExporter.to_onnx(tiny_backbone, out, input_dim=16,
-                                   opset_version=18)
+        m = ModelExporter.to_onnx(tiny_backbone, out, input_dim=16, opset_version=18)
         import onnx
+
         loaded = onnx.load(out)
         assert loaded.opset_import[0].version >= 18
         assert m.export_format == "onnx"
 
-    def test_domain_and_reasoning_config(self, tiny_backbone, tmp_path,
-                                          sample_reasoning_config):
+    def test_domain_and_reasoning_config(self, tiny_backbone, tmp_path, sample_reasoning_config):
         out = str(tmp_path / "domain.onnx")
         m = ModelExporter.to_onnx(
-            tiny_backbone, out, input_dim=16,
+            tiny_backbone,
+            out,
+            input_dim=16,
             domain="medical",
             reasoning_config=sample_reasoning_config,
         )
@@ -321,14 +333,13 @@ class TestOnnxExport:
         """Custom dynamic axes (batch dim only — dim 1 is static)."""
         axes = {"input": {0: "B"}, "output": {0: "B"}}
         out = str(tmp_path / "dyn.onnx")
-        m = ModelExporter.to_onnx(tiny_backbone, out, 16,
-                                   dynamic_axes=axes)
+        m = ModelExporter.to_onnx(tiny_backbone, out, 16, dynamic_axes=axes)
         assert m.export_format == "onnx"
         assert Path(out).exists()
 
     def test_creates_parent_dirs(self, tiny_backbone, tmp_path):
         deep = str(tmp_path / "a" / "b" / "c" / "model.onnx")
-        m = ModelExporter.to_onnx(tiny_backbone, deep, input_dim=16)
+        ModelExporter.to_onnx(tiny_backbone, deep, input_dim=16)
         assert Path(deep).exists()
 
     def test_manifest_save_alongside(self, tiny_backbone, tmp_path):
@@ -341,13 +352,11 @@ class TestOnnxExport:
 
     def test_bad_backbone_raises(self, tmp_path):
         with pytest.raises(NeSyError, match="no 'encode\\(\\)' method"):
-            ModelExporter.to_onnx(_NoEncodeBackbone(),
-                                   str(tmp_path / "x.onnx"), 16)
+            ModelExporter.to_onnx(_NoEncodeBackbone(), str(tmp_path / "x.onnx"), 16)
 
     def test_bad_input_dim_raises(self, tiny_backbone, tmp_path):
         with pytest.raises(NeSyError, match="positive integer"):
-            ModelExporter.to_onnx(tiny_backbone,
-                                   str(tmp_path / "x.onnx"), -1)
+            ModelExporter.to_onnx(tiny_backbone, str(tmp_path / "x.onnx"), -1)
 
     def test_bad_output_path_raises(self, tiny_backbone):
         with pytest.raises(NeSyError, match="non-empty string"):
@@ -356,6 +365,7 @@ class TestOnnxExport:
     def test_torch_import_error(self, tiny_backbone, tmp_path):
         """When torch is missing, a NeSyError should be raised."""
         import builtins
+
         original_import = builtins.__import__
 
         def _fake_import(name, *args, **kwargs):
@@ -365,11 +375,11 @@ class TestOnnxExport:
 
         with patch("builtins.__import__", side_effect=_fake_import):
             with pytest.raises(NeSyError, match="ONNX export requires"):
-                ModelExporter.to_onnx(tiny_backbone,
-                                       str(tmp_path / "x.onnx"), 16)
+                ModelExporter.to_onnx(tiny_backbone, str(tmp_path / "x.onnx"), 16)
 
     def test_backbone_name_fallback(self, tmp_path):
         """When backbone has no .name attr, class name is used."""
+
         class _BareBone(nn.Module):
             def __init__(self):
                 super().__init__()
@@ -418,24 +428,23 @@ class TestTfliteExportStaged:
 
     def test_bad_backbone_before_tf_check(self, tmp_path):
         with pytest.raises(NeSyError, match="no 'encode\\(\\)' method"):
-            ModelExporter.to_tflite(_NoEncodeBackbone(),
-                                     str(tmp_path / "x.tflite"), 16)
+            ModelExporter.to_tflite(_NoEncodeBackbone(), str(tmp_path / "x.tflite"), 16)
 
     def test_bad_dim_before_tf_check(self, tiny_backbone, tmp_path):
         with pytest.raises(NeSyError, match="positive integer"):
-            ModelExporter.to_tflite(tiny_backbone,
-                                     str(tmp_path / "x.tflite"), 0)
+            ModelExporter.to_tflite(tiny_backbone, str(tmp_path / "x.tflite"), 0)
 
     def test_bad_path_before_tf_check(self, tiny_backbone):
         with pytest.raises(NeSyError, match="non-empty string"):
             ModelExporter.to_tflite(tiny_backbone, "", 16)
 
-    def test_with_reasoning_config(self, tiny_backbone, tmp_path,
-                                    sample_reasoning_config):
+    def test_with_reasoning_config(self, tiny_backbone, tmp_path, sample_reasoning_config):
         out = str(tmp_path / "cfg.tflite")
         with pytest.raises(NeSyError) as exc_info:
             ModelExporter.to_tflite(
-                tiny_backbone, out, input_dim=16,
+                tiny_backbone,
+                out,
+                input_dim=16,
                 reasoning_config=sample_reasoning_config,
             )
         staged = exc_info.value.context["staged_manifest"]
@@ -469,6 +478,7 @@ class TestTfliteExportMocked:
                 if obj is None:
                     return self
                 import functools
+
                 bound = functools.partial(self._fn, obj)
                 bound.get_concrete_function = lambda: bound
                 return bound
@@ -494,13 +504,15 @@ class TestTfliteExportMocked:
         converter_mock.convert.return_value = tflite_bytes
         mock_tf.lite.TFLiteConverter.from_concrete_functions.return_value = converter_mock
 
-        with patch.dict("sys.modules", {
-            "tensorflow": mock_tf,
-            "numpy": mock_np,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "tensorflow": mock_tf,
+                "numpy": mock_np,
+            },
+        ):
             out = str(tmp_path / "model.tflite")
-            m = ModelExporter.to_tflite(tiny_backbone, out, input_dim=16,
-                                         quantise=False)
+            m = ModelExporter.to_tflite(tiny_backbone, out, input_dim=16, quantise=False)
 
         assert Path(out).exists()
         assert Path(out).read_bytes() == tflite_bytes
@@ -517,13 +529,15 @@ class TestTfliteExportMocked:
         converter_mock.convert.return_value = tflite_bytes
         mock_tf.lite.TFLiteConverter.from_concrete_functions.return_value = converter_mock
 
-        with patch.dict("sys.modules", {
-            "tensorflow": mock_tf,
-            "numpy": mock_np,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "tensorflow": mock_tf,
+                "numpy": mock_np,
+            },
+        ):
             out = str(tmp_path / "model_q.tflite")
-            m = ModelExporter.to_tflite(tiny_backbone, out, input_dim=16,
-                                         quantise=True)
+            m = ModelExporter.to_tflite(tiny_backbone, out, input_dim=16, quantise=True)
 
         assert m.quantization_mode == "dynamic"
         assert m.export_format == "tflite"
@@ -550,12 +564,15 @@ class TestTfliteExportMocked:
 
         mock_tf.lite.TFLiteConverter.from_concrete_functions.side_effect = capture_converter
 
-        with patch.dict("sys.modules", {
-            "tensorflow": mock_tf,
-            "numpy": mock_np,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "tensorflow": mock_tf,
+                "numpy": mock_np,
+            },
+        ):
             out = str(tmp_path / "serve.tflite")
-            m = ModelExporter.to_tflite(tiny_backbone, out, input_dim=16)
+            ModelExporter.to_tflite(tiny_backbone, out, input_dim=16)
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -588,24 +605,23 @@ class TestCoremlExportStaged:
 
     def test_bad_backbone_before_ct_check(self, tmp_path):
         with pytest.raises(NeSyError, match="no 'encode\\(\\)' method"):
-            ModelExporter.to_coreml(_NoEncodeBackbone(),
-                                     str(tmp_path / "x.mlpackage"), 16)
+            ModelExporter.to_coreml(_NoEncodeBackbone(), str(tmp_path / "x.mlpackage"), 16)
 
     def test_bad_dim_before_ct_check(self, tiny_backbone, tmp_path):
         with pytest.raises(NeSyError, match="positive integer"):
-            ModelExporter.to_coreml(tiny_backbone,
-                                     str(tmp_path / "x.mlpackage"), -5)
+            ModelExporter.to_coreml(tiny_backbone, str(tmp_path / "x.mlpackage"), -5)
 
     def test_bad_path_before_ct_check(self, tiny_backbone):
         with pytest.raises(NeSyError, match="non-empty string"):
             ModelExporter.to_coreml(tiny_backbone, "", 16)
 
-    def test_with_domain_and_reasoning(self, tiny_backbone, tmp_path,
-                                        sample_reasoning_config):
+    def test_with_domain_and_reasoning(self, tiny_backbone, tmp_path, sample_reasoning_config):
         out = str(tmp_path / "cfg.mlpackage")
         with pytest.raises(NeSyError) as exc_info:
             ModelExporter.to_coreml(
-                tiny_backbone, out, input_dim=16,
+                tiny_backbone,
+                out,
+                input_dim=16,
                 domain="legal",
                 reasoning_config=sample_reasoning_config,
             )
@@ -634,7 +650,9 @@ class TestCoremlExportMocked:
 
         with patch.dict("sys.modules", {"coremltools": mock_ct}):
             m = ModelExporter.to_coreml(
-                tiny_backbone, out, input_dim=16,
+                tiny_backbone,
+                out,
+                input_dim=16,
                 model_name="TestCore",
             )
 
@@ -650,21 +668,23 @@ class TestCoremlExportMocked:
 
 
 class TestExportBundle:
-
     def test_onnx_only_bundle(self, tiny_backbone, tmp_path):
         bundle_dir = str(tmp_path / "bundle")
         manifests = ModelExporter.export_bundle(
-            tiny_backbone, bundle_dir, input_dim=16,
+            tiny_backbone,
+            bundle_dir,
+            input_dim=16,
         )
         assert "onnx" in manifests
         assert (tmp_path / "bundle" / "model.onnx").exists()
         assert (tmp_path / "bundle" / "manifest.json").exists()
 
-    def test_bundle_with_reasoning_config(self, tiny_backbone, tmp_path,
-                                           sample_reasoning_config):
+    def test_bundle_with_reasoning_config(self, tiny_backbone, tmp_path, sample_reasoning_config):
         bundle_dir = str(tmp_path / "bundle_cfg")
-        manifests = ModelExporter.export_bundle(
-            tiny_backbone, bundle_dir, input_dim=16,
+        ModelExporter.export_bundle(
+            tiny_backbone,
+            bundle_dir,
+            input_dim=16,
             reasoning_config=sample_reasoning_config,
         )
         cfg_path = tmp_path / "bundle_cfg" / "reasoning_config.json"
@@ -676,7 +696,9 @@ class TestExportBundle:
         """TFLite format is attempted but staged with warning (no crash)."""
         bundle_dir = str(tmp_path / "bundle_mixed")
         manifests = ModelExporter.export_bundle(
-            tiny_backbone, bundle_dir, input_dim=16,
+            tiny_backbone,
+            bundle_dir,
+            input_dim=16,
             formats=["onnx", "tflite"],
         )
         # ONNX should succeed
@@ -688,7 +710,9 @@ class TestExportBundle:
     def test_bundle_with_coreml_staged(self, tiny_backbone, tmp_path):
         bundle_dir = str(tmp_path / "bundle_coreml")
         manifests = ModelExporter.export_bundle(
-            tiny_backbone, bundle_dir, input_dim=16,
+            tiny_backbone,
+            bundle_dir,
+            input_dim=16,
             formats=["onnx", "coreml"],
         )
         assert "onnx" in manifests
@@ -698,7 +722,9 @@ class TestExportBundle:
     def test_bundle_unknown_format_skipped(self, tiny_backbone, tmp_path):
         bundle_dir = str(tmp_path / "bundle_unk")
         manifests = ModelExporter.export_bundle(
-            tiny_backbone, bundle_dir, input_dim=16,
+            tiny_backbone,
+            bundle_dir,
+            input_dim=16,
             formats=["webgl"],
         )
         assert len(manifests) == 0
@@ -707,7 +733,9 @@ class TestExportBundle:
     def test_bundle_manifest_json(self, tiny_backbone, tmp_path):
         bundle_dir = str(tmp_path / "bundle_mf")
         ModelExporter.export_bundle(
-            tiny_backbone, bundle_dir, input_dim=16,
+            tiny_backbone,
+            bundle_dir,
+            input_dim=16,
         )
         mf_path = tmp_path / "bundle_mf" / "manifest.json"
         data = json.loads(mf_path.read_text(encoding="utf-8"))
@@ -717,13 +745,17 @@ class TestExportBundle:
     def test_bad_backbone_raises(self, tmp_path):
         with pytest.raises(NeSyError, match="no 'encode\\(\\)' method"):
             ModelExporter.export_bundle(
-                _NoEncodeBackbone(), str(tmp_path / "b"), 16,
+                _NoEncodeBackbone(),
+                str(tmp_path / "b"),
+                16,
             )
 
     def test_bad_input_dim_raises(self, tiny_backbone, tmp_path):
         with pytest.raises(NeSyError, match="positive integer"):
             ModelExporter.export_bundle(
-                tiny_backbone, str(tmp_path / "b"), 0,
+                tiny_backbone,
+                str(tmp_path / "b"),
+                0,
             )
 
     def test_bad_output_dir_raises(self, tiny_backbone):
@@ -733,7 +765,9 @@ class TestExportBundle:
     def test_domain_propagated(self, tiny_backbone, tmp_path):
         bundle_dir = str(tmp_path / "bundle_dom")
         manifests = ModelExporter.export_bundle(
-            tiny_backbone, bundle_dir, input_dim=16,
+            tiny_backbone,
+            bundle_dir,
+            input_dim=16,
             domain="legal",
         )
         assert manifests["onnx"].domain == "legal"
@@ -742,7 +776,9 @@ class TestExportBundle:
         """All three formats attempted — ONNX succeeds, others staged."""
         bundle_dir = str(tmp_path / "all")
         manifests = ModelExporter.export_bundle(
-            tiny_backbone, bundle_dir, input_dim=16,
+            tiny_backbone,
+            bundle_dir,
+            input_dim=16,
             formats=["onnx", "tflite", "coreml"],
         )
         assert "onnx" in manifests
@@ -751,13 +787,18 @@ class TestExportBundle:
     def test_bundle_tflite_success_mocked(self, tiny_backbone, tmp_path):
         """Mock TFLite to succeed inside export_bundle (covers line 666)."""
         fake_manifest = ExportManifest(
-            model_name="T", domain="g", export_format="tflite",
-            input_shape=[1, 16], checksum="a" * 64,
+            model_name="T",
+            domain="g",
+            export_format="tflite",
+            input_shape=[1, 16],
+            checksum="a" * 64,
         )
         bundle_dir = str(tmp_path / "b_tflite_ok")
         with patch.object(ModelExporter, "to_tflite", return_value=fake_manifest):
             manifests = ModelExporter.export_bundle(
-                tiny_backbone, bundle_dir, input_dim=16,
+                tiny_backbone,
+                bundle_dir,
+                input_dim=16,
                 formats=["tflite"],
             )
         assert "tflite" in manifests
@@ -766,13 +807,18 @@ class TestExportBundle:
     def test_bundle_coreml_success_mocked(self, tiny_backbone, tmp_path):
         """Mock CoreML to succeed inside export_bundle (covers line 675)."""
         fake_manifest = ExportManifest(
-            model_name="C", domain="g", export_format="coreml",
-            input_shape=[1, 16], checksum="b" * 64,
+            model_name="C",
+            domain="g",
+            export_format="coreml",
+            input_shape=[1, 16],
+            checksum="b" * 64,
         )
         bundle_dir = str(tmp_path / "b_coreml_ok")
         with patch.object(ModelExporter, "to_coreml", return_value=fake_manifest):
             manifests = ModelExporter.export_bundle(
-                tiny_backbone, bundle_dir, input_dim=16,
+                tiny_backbone,
+                bundle_dir,
+                input_dim=16,
                 formats=["coreml"],
             )
         assert "coreml" in manifests

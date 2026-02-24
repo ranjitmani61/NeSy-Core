@@ -11,13 +11,13 @@ to verify.
 Mathematical basis:
     SLD Resolution (Selected Linear Definite clause resolution)
     — the foundation of Prolog-style reasoning.
-    
+
     Proof of goal G:
         If G is a known fact → SUCCESS
         If ∃ rule H ← B₁, B₂, ..., Bₙ where unify(G, H) = θ:
             recursively prove B₁θ, B₂θ, ..., Bₙθ
         If no applicable rule → FAILURE
-    
+
     Proof tree: each node is a subgoal, edges are rule applications.
     This gives us not just "provable or not" but a PROOF TREE
     that explains exactly HOW the conclusion was reached.
@@ -25,19 +25,20 @@ Mathematical basis:
 Compared to forward chaining:
     Forward: derives ALL provable facts (breadth-first, expensive)
     Backward: proves ONE specific goal (goal-directed, efficient)
-    
+
     In NeSy-Core:
         Use forward chaining for: "what can we conclude from these facts?"
         Use backward chaining for: "can we prove this specific hypothesis?"
 """
+
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
-from nesy.core.types import LogicConnective, Predicate, SymbolicRule
-from nesy.symbolic.logic import apply_substitution, unify, is_variable
+from nesy.core.types import Predicate, SymbolicRule
+from nesy.symbolic.logic import apply_substitution, unify
 
 logger = logging.getLogger(__name__)
 
@@ -49,29 +50,31 @@ Substitution = Dict[str, str]
 @dataclass
 class ProofNode:
     """A node in the proof tree.
-    
+
     goal:        The predicate we are trying to prove at this node.
     rule_used:   The rule that was used to reduce this goal.
     children:    Subgoals that had to be proven to prove this goal.
     substitution: Variable bindings at this step.
     """
-    goal:         Predicate
-    rule_used:    Optional[str]     = None   # rule.id
-    children:     List["ProofNode"] = field(default_factory=list)
-    substitution: Substitution      = field(default_factory=dict)
-    is_fact:      bool              = False  # True if proved directly from KB
+
+    goal: Predicate
+    rule_used: Optional[str] = None  # rule.id
+    children: List["ProofNode"] = field(default_factory=list)
+    substitution: Substitution = field(default_factory=dict)
+    is_fact: bool = False  # True if proved directly from KB
 
 
 @dataclass
 class ProofResult:
     """Result of a backward chaining proof attempt."""
-    goal:          Predicate
-    proved:        bool
-    proof_tree:    Optional[ProofNode]
-    substitution:  Substitution
+
+    goal: Predicate
+    proved: bool
+    proof_tree: Optional[ProofNode]
+    substitution: Substitution
     depth_reached: int
-    rules_used:    List[str]        # in order of application
-    confidence:    float            # product of rule weights in proof
+    rules_used: List[str]  # in order of application
+    confidence: float  # product of rule weights in proof
 
     def explain(self, indent: int = 0) -> str:
         """Generate human-readable proof explanation."""
@@ -94,9 +97,9 @@ class ProofResult:
 
 class BackwardChainer:
     """SLD-resolution backward chaining prover.
-    
+
     Proves specific hypotheses against a knowledge base of facts + rules.
-    
+
     Usage:
         prover = BackwardChainer(rules=medical_rules, max_depth=20)
         result = prover.prove(
@@ -109,20 +112,20 @@ class BackwardChainer:
 
     def __init__(
         self,
-        rules:     List[SymbolicRule],
-        max_depth: int   = 20,
+        rules: List[SymbolicRule],
+        max_depth: int = 20,
     ):
-        self.rules     = rules
+        self.rules = rules
         self.max_depth = max_depth
 
     def prove(
         self,
-        goal:        Predicate,
-        facts:       Set[Predicate],
+        goal: Predicate,
+        facts: Set[Predicate],
         substitution: Optional[Substitution] = None,
     ) -> ProofResult:
         """Attempt to prove a single goal.
-        
+
         Returns ProofResult with:
             - proved: bool
             - proof_tree: full derivation tree if proved
@@ -157,13 +160,13 @@ class BackwardChainer:
 
     def _prove_goal(
         self,
-        goal:   Predicate,
-        facts:  Set[Predicate],
-        theta:  Substitution,
-        depth:  int,
+        goal: Predicate,
+        facts: Set[Predicate],
+        theta: Substitution,
+        depth: int,
     ) -> Tuple[Optional[ProofNode], Substitution, float, List[str]]:
         """Recursive SLD resolution.
-        
+
         Returns (node, substitution, confidence, rules_used) or (None, {}, 0.0, []) on failure.
         """
         if depth > self.max_depth:
@@ -207,7 +210,7 @@ class BackwardChainer:
 
                     child_nodes.append(child_node)
                     current_theta = new_theta
-                    confidence   *= child_conf
+                    confidence *= child_conf
                     rules_used.extend(child_rules)
 
                 if all_proved:

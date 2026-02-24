@@ -16,12 +16,12 @@ Tests cover:
 
 Target: 100% line coverage for nesy/symbolic/solver.py.
 """
-import json
+
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from nesy.core.exceptions import NeSyError, SymbolicConflict
+from nesy.core.exceptions import NeSyError
 from nesy.core.types import Predicate, SymbolicRule
 from nesy.symbolic.solver import (
     ArithmeticConstraint,
@@ -35,6 +35,7 @@ from nesy.symbolic.solver import (
 # ═══════════════════════════════════════════════════════════════════
 #  ArithmeticConstraint Tests
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestArithmeticConstraint:
     """Validate ArithmeticConstraint dataclass and its __post_init__."""
@@ -96,8 +97,8 @@ class TestArithmeticConstraint:
 #  ConstraintResult Tests
 # ═══════════════════════════════════════════════════════════════════
 
-class TestConstraintResult:
 
+class TestConstraintResult:
     def test_default_fields(self):
         r = ConstraintResult(satisfiable=True)
         assert r.satisfiable is True
@@ -121,8 +122,8 @@ class TestConstraintResult:
 #  ConstraintSolver — Core API Tests
 # ═══════════════════════════════════════════════════════════════════
 
-class TestConstraintSolverCore:
 
+class TestConstraintSolverCore:
     def test_init_empty(self):
         s = ConstraintSolver()
         assert s.constraint_count == 0
@@ -150,10 +151,12 @@ class TestConstraintSolverCore:
 
     def test_add_constraints_bulk(self):
         s = ConstraintSolver()
-        s.add_constraints([
-            ArithmeticConstraint("x", ">=", 0),
-            ArithmeticConstraint("y", "<=", 100),
-        ])
+        s.add_constraints(
+            [
+                ArithmeticConstraint("x", ">=", 0),
+                ArithmeticConstraint("y", "<=", 100),
+            ]
+        )
         assert s.constraint_count == 2
 
     def test_clear(self):
@@ -183,9 +186,9 @@ class TestConstraintSolverCore:
 #  ConstraintSolver — Z3 SMT Tests (real Z3 calls)
 # ═══════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.skipif(not Z3_AVAILABLE, reason="Z3 not installed")
 class TestSolverZ3:
-
     def test_satisfiable_single(self):
         s = ConstraintSolver()
         s.add_constraint(ArithmeticConstraint("dosage", "<=", 500))
@@ -357,21 +360,24 @@ class TestSolverZ3:
 #  ConstraintSolver — Pure Python Fallback
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestSolverPurePython:
     """Test the pure-Python fallback by calling _check_pure_python
     directly, bypassing Z3."""
 
     def test_all_operators_satisfied(self):
         s = ConstraintSolver()
-        s.add_constraints([
-            ArithmeticConstraint("a", ">=", 10),
-            ArithmeticConstraint("b", "<=", 20),
-            ArithmeticConstraint("c", ">", 0),
-            ArithmeticConstraint("d", "<", 100),
-            ArithmeticConstraint("e", "==", 5),
-            ArithmeticConstraint("f", "!=", 0),
-            ArithmeticConstraint("g", "between", (10, 20)),
-        ])
+        s.add_constraints(
+            [
+                ArithmeticConstraint("a", ">=", 10),
+                ArithmeticConstraint("b", "<=", 20),
+                ArithmeticConstraint("c", ">", 0),
+                ArithmeticConstraint("d", "<", 100),
+                ArithmeticConstraint("e", "==", 5),
+                ArithmeticConstraint("f", "!=", 0),
+                ArithmeticConstraint("g", "between", (10, 20)),
+            ]
+        )
         s.set_values({"a": 10, "b": 20, "c": 1, "d": 99, "e": 5, "f": 1, "g": 15})
         result = s._check_pure_python()
         assert result.satisfiable is True
@@ -456,8 +462,8 @@ class TestSolverPurePython:
 #  ConstraintSolver — Cardinality Constraints
 # ═══════════════════════════════════════════════════════════════════
 
-class TestSolverCardinality:
 
+class TestSolverCardinality:
     def test_at_most_one_empty(self):
         s = ConstraintSolver()
         assert s.check_at_most_one([]) is True
@@ -493,8 +499,8 @@ class TestSolverCardinality:
 #  ConstraintSolver — Hard Rule Bridge
 # ═══════════════════════════════════════════════════════════════════
 
-class TestSolverHardRuleBridge:
 
+class TestSolverHardRuleBridge:
     def test_add_hard_rule(self):
         s = ConstraintSolver()
         rule = SymbolicRule(
@@ -554,10 +560,12 @@ class TestSolverHardRuleBridge:
         )
         s.add_hard_rule(rule)
 
-        facts = frozenset({
-            Predicate("HasAllergy", ("patient_1", "penicillin")),
-            Predicate("Prescribed", ("patient_1", "penicillin")),
-        })
+        facts = frozenset(
+            {
+                Predicate("HasAllergy", ("patient_1", "penicillin")),
+                Predicate("Prescribed", ("patient_1", "penicillin")),
+            }
+        )
         passed, violations = s.check_hard_rules(facts)
         assert passed is False
         assert len(violations) == 1
@@ -588,8 +596,8 @@ class TestSolverHardRuleBridge:
 #  ConstraintSolver — require_z3()
 # ═══════════════════════════════════════════════════════════════════
 
-class TestRequireZ3:
 
+class TestRequireZ3:
     @pytest.mark.skipif(not Z3_AVAILABLE, reason="Z3 installed — test N/A")
     def test_require_z3_available(self):
         s = ConstraintSolver()
@@ -598,6 +606,7 @@ class TestRequireZ3:
     def test_require_z3_mock_unavailable(self, monkeypatch):
         """Simulate Z3 not available."""
         import nesy.symbolic.solver as solver_module
+
         monkeypatch.setattr(solver_module, "Z3_AVAILABLE", False)
 
         s = ConstraintSolver()
@@ -609,17 +618,19 @@ class TestRequireZ3:
 #  Z3 Utility Functions
 # ═══════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.skipif(not Z3_AVAILABLE, reason="Z3 not installed")
 class TestZ3Utilities:
-
     def test_z3_to_float_rational(self):
         import z3
+
         val = z3.RealVal("3/4")
         result = ConstraintSolver._z3_to_float(val)
         assert abs(result - 0.75) < 1e-10
 
     def test_z3_to_float_integer(self):
         import z3
+
         val = z3.IntVal(42)
         result = ConstraintSolver._z3_to_float(val)
         assert result == 42.0
@@ -627,6 +638,7 @@ class TestZ3Utilities:
     def test_z3_to_float_fallback(self):
         """Non-standard Z3 type → fallback to 0.0."""
         import z3
+
         # Bool is not numeric
         val = z3.BoolVal(True)
         result = ConstraintSolver._z3_to_float(val)
@@ -638,8 +650,8 @@ class TestZ3Utilities:
 #  Module-level constants
 # ═══════════════════════════════════════════════════════════════════
 
-class TestModuleConstants:
 
+class TestModuleConstants:
     def test_valid_operators(self):
         expected = {">=", "<=", ">", "<", "==", "!=", "between"}
         assert VALID_OPERATORS == expected
@@ -653,11 +665,13 @@ class TestModuleConstants:
 #  Z3_AVAILABLE = False fallback path
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestSolverZ3UnavailableFallback:
     """Exercise the code path where Z3_AVAILABLE is False."""
 
     def test_check_all_routes_to_pure_python(self, monkeypatch):
         import nesy.symbolic.solver as mod
+
         monkeypatch.setattr(mod, "Z3_AVAILABLE", False)
 
         s = ConstraintSolver()
@@ -668,6 +682,7 @@ class TestSolverZ3UnavailableFallback:
 
     def test_check_all_pure_python_violation(self, monkeypatch):
         import nesy.symbolic.solver as mod
+
         monkeypatch.setattr(mod, "Z3_AVAILABLE", False)
 
         s = ConstraintSolver()
@@ -681,17 +696,15 @@ class TestSolverZ3UnavailableFallback:
 #  Z3 edge cases — unknown result, empty unsat core, den=0
 # ═══════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.skipif(not Z3_AVAILABLE, reason="Z3 not installed")
 class TestZ3EdgeCases:
-
     def test_z3_unknown_treated_as_satisfiable(self, monkeypatch):
         """When z3.unknown is returned, treat as satisfiable."""
         import z3 as z3_mod
 
         s = ConstraintSolver()
         s.add_constraint(ArithmeticConstraint("x", ">=", 0))
-
-        orig_check = z3_mod.Solver.check
 
         def mock_check(self_solver, *args, **kwargs):
             return z3_mod.unknown
@@ -709,10 +722,10 @@ class TestZ3EdgeCases:
         s.set_value("x", 20)
 
         # Make unsat_core return empty list
-        orig_check = z3_mod.Solver.check
 
         class MockSolver:
             """Wraps real solver but returns empty unsat_core."""
+
             pass
 
         def patched_unsat_core(self_solver):
@@ -726,7 +739,6 @@ class TestZ3EdgeCases:
     def test_z3_to_float_zero_denominator(self):
         """Edge case: rational with d=0 → return 0.0."""
         import z3 as z3_mod
-        from unittest.mock import MagicMock
 
         mock_val = MagicMock()
         # Make is_rational_value return True

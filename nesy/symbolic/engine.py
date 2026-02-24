@@ -19,7 +19,6 @@ from nesy.core.types import (
     Predicate,
     ReasoningStep,
     SymbolicRule,
-    UnsatCore,
 )
 from nesy.symbolic.logic import (
     betti_0,
@@ -34,14 +33,14 @@ logger = logging.getLogger(__name__)
 
 class SymbolicEngine:
     """Core symbolic reasoning engine for NeSy-Core.
-    
+
     Responsibilities:
         1. Maintain a knowledge base (KB) of symbolic rules
         2. Perform forward-chaining inference
         3. Detect logical contradictions (hard constraints)
         4. Compute topological consistency (Betti numbers)
         5. Produce fully auditable reasoning traces
-    
+
     Usage:
         engine = SymbolicEngine()
         engine.load_rules(medical_rules)
@@ -50,14 +49,14 @@ class SymbolicEngine:
 
     def __init__(self, domain: Optional[str] = None):
         self.domain = domain
-        self._rules: Dict[str, SymbolicRule] = {}   # id → rule
-        self._immutable_rules: Set[str] = set()      # ids of anchor rules
+        self._rules: Dict[str, SymbolicRule] = {}  # id → rule
+        self._immutable_rules: Set[str] = set()  # ids of anchor rules
 
     # ─── RULE MANAGEMENT ───────────────────────────────────────────
 
     def add_rule(self, rule: SymbolicRule) -> None:
         """Add a single rule to the knowledge base.
-        
+
         Immutable rules (symbolic anchors) can never be removed
         or overwritten — they are the permanent logical bedrock.
         """
@@ -95,14 +94,14 @@ class SymbolicEngine:
 
     def check_consistency(self, facts: Set[Predicate]) -> bool:
         """Check if given facts are consistent with all HARD rules.
-        
+
         Converts hard rules to CNF clauses, adds negated facts,
         and runs resolution. If empty clause derived → contradiction.
-        
+
         When a contradiction is detected, builds an ``UnsatCore`` with
         human-readable explanation and repair suggestions, and attaches
         it to the raised ``SymbolicConflict``.
-        
+
         Raises SymbolicConflict if inconsistency found.
         Returns True if consistent.
         """
@@ -111,6 +110,7 @@ class SymbolicEngine:
         # Add negations of all current facts as clauses
         for fact in facts:
             from nesy.symbolic.logic import negate_predicate
+
             clauses.append(frozenset([negate_predicate(fact)]))
 
         # Add hard rule clauses
@@ -121,8 +121,7 @@ class SymbolicEngine:
         if not satisfiable:
             # Find which rules conflict
             conflicting = [
-                rule.id for rule in self.hard_rules
-                if any(ant in facts for ant in rule.antecedents)
+                rule.id for rule in self.hard_rules if any(ant in facts for ant in rule.antecedents)
             ]
 
             # Build UnsatCore with explanation + repairs
@@ -149,13 +148,13 @@ class SymbolicEngine:
         max_depth: int = 50,
     ) -> Tuple[Set[Predicate], List[ReasoningStep], float]:
         """Main reasoning entry point.
-        
+
         Steps:
             1. Consistency check (hard constraints only)
             2. Forward chaining to derive all provable conclusions
             3. Topological analysis (Betti number)
             4. Build reasoning steps for audit trail
-        
+
         Returns:
             derived_facts:  all facts provable from input + rules
             steps:          ordered reasoning steps for trace
@@ -186,7 +185,7 @@ class SymbolicEngine:
                 "Possible hidden information or deceptive input."
             )
             # Soft penalty: reduce confidence proportionally
-            confidence *= (1.0 / b0)
+            confidence *= 1.0 / b0
 
         return derived_facts, steps, confidence
 
@@ -200,29 +199,33 @@ class SymbolicEngine:
         steps = []
 
         # Step 0: initial facts
-        steps.append(ReasoningStep(
-            step_number=0,
-            description=f"Initial facts: {', '.join(str(p) for p in initial_facts)}",
-            rule_applied=None,
-            predicates=list(initial_facts),
-            confidence=1.0,
-        ))
+        steps.append(
+            ReasoningStep(
+                step_number=0,
+                description=f"Initial facts: {', '.join(str(p) for p in initial_facts)}",
+                rule_applied=None,
+                predicates=list(initial_facts),
+                confidence=1.0,
+            )
+        )
 
         # Subsequent steps from forward chaining
         for i, clause in enumerate(audit_trail, start=1):
             rule_id = clause.source_rule
             rule = self._rules.get(rule_id) if rule_id else None
-            steps.append(ReasoningStep(
-                step_number=i,
-                description=(
-                    f"Applied rule '{rule_id}': "
-                    f"{rule.description if rule else 'derived'} → "
-                    f"{', '.join(str(p) for p in clause.predicates)}"
-                ),
-                rule_applied=rule_id,
-                predicates=clause.predicates,
-                confidence=clause.weight,
-            ))
+            steps.append(
+                ReasoningStep(
+                    step_number=i,
+                    description=(
+                        f"Applied rule '{rule_id}': "
+                        f"{rule.description if rule else 'derived'} → "
+                        f"{', '.join(str(p) for p in clause.predicates)}"
+                    ),
+                    rule_applied=rule_id,
+                    predicates=clause.predicates,
+                    confidence=clause.weight,
+                )
+            )
 
         return steps
 
@@ -232,7 +235,7 @@ class SymbolicEngine:
         audit_trail: List[LogicClause],
     ) -> float:
         """Symbolic confidence = weighted average of clause weights in the chain.
-        
+
         A chain where all rules have weight=1.0 gives confidence=1.0.
         Soft rules (weight < 1.0) reduce the overall confidence.
         The minimum weight in the chain is the bottleneck (weakest link).
@@ -248,4 +251,4 @@ class SymbolicEngine:
             product *= w
         # Normalise so a single soft step doesn't collapse confidence
         n = len(weights)
-        return product ** (1.0 / n) if n > 0 else 1.0   # geometric mean
+        return product ** (1.0 / n) if n > 0 else 1.0  # geometric mean

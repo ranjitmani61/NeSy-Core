@@ -13,9 +13,10 @@ Usage:
                 .with_concept_edges(medical_edges)
                 .with_doubt_threshold(0.65)
                 .build())
-    
+
     output = pipeline.run("Patient has fever and elevated WBC.")
 """
+
 from __future__ import annotations
 import logging
 from typing import Any, List, Optional, Set
@@ -32,11 +33,11 @@ class NeSyPipeline:
 
     def __init__(self):
         self._backbone: Optional[NeSyBackbone] = None
-        self._rules:    List[SymbolicRule]  = []
-        self._edges:    List[ConceptEdge]   = []
-        self._domain:   str   = "general"
+        self._rules: List[SymbolicRule] = []
+        self._edges: List[ConceptEdge] = []
+        self._domain: str = "general"
         self._threshold: float = 0.60
-        self._strict:    bool  = False
+        self._strict: bool = False
 
     def with_backbone(self, backbone: NeSyBackbone) -> "NeSyPipeline":
         self._backbone = backbone
@@ -64,6 +65,7 @@ class NeSyPipeline:
 
     def build(self) -> "BuiltPipeline":
         from nesy.api.nesy_model import NeSyModel
+
         model = NeSyModel(
             domain=self._domain,
             doubt_threshold=self._threshold,
@@ -79,14 +81,14 @@ class BuiltPipeline:
     """Executable pipeline built by NeSyPipeline."""
 
     def __init__(self, model, backbone: NeSyBackbone, domain: str):
-        self._model    = model
+        self._model = model
         self._backbone = backbone
-        self._domain   = domain
+        self._domain = domain
         self._grounder = SymbolGrounder()
 
     def run(self, input_data: Any, facts: Optional[Set[Predicate]] = None) -> NSIOutput:
         """Run the full pipeline on input.
-        
+
         If facts are provided directly, skips the neural encoding step.
         If only input_data provided, encodes to embedding → grounds to predicates.
         """

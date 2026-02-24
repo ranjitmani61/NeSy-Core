@@ -1,4 +1,5 @@
 """nesy/deployment/server/middleware.py"""
+
 from __future__ import annotations
 import time
 import logging
@@ -6,6 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 logger = logging.getLogger(__name__)
+
 
 def setup_middleware(app: FastAPI) -> None:
     app.add_middleware(

@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 # Variable convention: strings starting with '?' are variables
 # e.g. "?x", "?patient" — concrete values have no leading '?'
 
-Substitution = Dict[str, str]   # variable → value
+Substitution = Dict[str, str]  # variable → value
 
 
 def is_variable(term: str) -> bool:
@@ -52,18 +52,20 @@ def apply_substitution(predicate: Predicate, theta: Substitution) -> Predicate:
     return Predicate(name=predicate.name, args=new_args)
 
 
-def unify(p1: Predicate, p2: Predicate, theta: Optional[Substitution] = None) -> Optional[Substitution]:
+def unify(
+    p1: Predicate, p2: Predicate, theta: Optional[Substitution] = None
+) -> Optional[Substitution]:
     """Unify two predicates using Robinson's unification algorithm.
-    
+
     Returns substitution θ such that apply(p1, θ) == apply(p2, θ),
     or None if unification is impossible (contradiction).
-    
+
     Time complexity: O(n) where n = total argument count.
-    
+
     Examples:
         unify(HasSymptom(?p, fever), HasSymptom(patient_1, fever))
         → {"?p": "patient_1"}
-        
+
         unify(HasSymptom(?p, fever), HasSymptom(patient_1, cough))
         → None  (fever ≠ cough, both ground terms)
     """
@@ -92,7 +94,7 @@ def unify(p1: Predicate, p2: Predicate, theta: Optional[Substitution] = None) ->
             theta[a2] = a1
 
         else:
-            return None   # two different ground terms — cannot unify
+            return None  # two different ground terms — cannot unify
 
     return theta
 
@@ -110,6 +112,7 @@ def _occurs_check(var: str, term: str, theta: Substitution) -> bool:
 #  CLAUSE RESOLUTION
 # ─────────────────────────────────────────────
 
+
 def negate_predicate(p: Predicate) -> Predicate:
     """Negation: wrap in NOT or unwrap existing NOT."""
     if p.name.startswith("NOT_"):
@@ -122,10 +125,10 @@ def resolve_clauses(
     clause_b: FrozenSet[Predicate],
 ) -> Optional[FrozenSet[Predicate]]:
     """Resolution inference rule: given two clauses, produce resolvent.
-    
+
     Two clauses resolve if one contains P and the other ¬P
     (after unification). The resolvent is their union minus {P, ¬P}.
-    
+
     If resolvent is empty → contradiction proved (UNSAT).
     """
     for p_a in clause_a:
@@ -134,35 +137,29 @@ def resolve_clauses(
             theta = unify(neg_p_a, p_b)
             if theta is not None:
                 # Apply substitution and form resolvent
-                resolved_a = frozenset(
-                    apply_substitution(p, theta)
-                    for p in clause_a if p != p_a
-                )
-                resolved_b = frozenset(
-                    apply_substitution(p, theta)
-                    for p in clause_b if p != p_b
-                )
+                resolved_a = frozenset(apply_substitution(p, theta) for p in clause_a if p != p_a)
+                resolved_b = frozenset(apply_substitution(p, theta) for p in clause_b if p != p_b)
                 return resolved_a | resolved_b
     return None
 
 
 def is_satisfiable(clauses: List[FrozenSet[Predicate]], max_steps: int = 1000) -> bool:
     """Determine satisfiability via resolution refutation.
-    
+
     Algorithm: add negation of goal, then resolve.
     If empty clause found → original is UNSATISFIABLE (contradiction).
     If no new clauses can be derived → SATISFIABLE.
-    
+
     This is a complete decision procedure for propositional logic.
     For FOL it is semi-decidable (will find contradiction if one exists,
     but may not terminate on satisfiable inputs — hence max_steps).
     """
     clause_set = list(clauses)
-    
+
     for _ in range(max_steps):
         new_clauses = []
         pairs = list(itertools.combinations(clause_set, 2))
-        
+
         for c1, c2 in pairs:
             resolvent = resolve_clauses(c1, c2)
             if resolvent is None:
@@ -187,15 +184,14 @@ def is_satisfiable(clauses: List[FrozenSet[Predicate]], max_steps: int = 1000) -
 #  RULE → CLAUSE CONVERSION
 # ─────────────────────────────────────────────
 
+
 def rule_to_clause(rule: SymbolicRule) -> FrozenSet[Predicate]:
     """Convert a SymbolicRule to a clause in conjunctive normal form.
-    
+
     Rule:   A ∧ B → C  (if A and B then C)
     CNF:    ¬A ∨ ¬B ∨ C  (equivalent disjunctive clause)
     """
-    negated_antecedents = frozenset(
-        negate_predicate(p) for p in rule.antecedents
-    )
+    negated_antecedents = frozenset(negate_predicate(p) for p in rule.antecedents)
     consequents = frozenset(rule.consequents)
     return negated_antecedents | consequents
 
@@ -204,18 +200,19 @@ def rule_to_clause(rule: SymbolicRule) -> FrozenSet[Predicate]:
 #  BETTI NUMBER — TOPOLOGICAL CONTRADICTION CHECK
 # ─────────────────────────────────────────────
 
+
 def betti_0(predicates: List[Predicate]) -> int:
     """Compute Betti number β₀ = number of connected components.
-    
+
     Mathematical basis:
         β₀ = |V| - |E|  for a forest (acyclic graph)
         β₀ = 1 means all predicates are in one connected reasoning chain
         β₀ > 1 means multiple DISCONNECTED reasoning chains exist
-    
+
     In NeSy-Core, β₀ > 1 is a soft warning: the reasoning trace
     has independent chains that do not connect — possible deception
     or hidden information (NSI principle).
-    
+
     Two predicates are connected if they share at least one argument.
     """
     if not predicates:
@@ -239,7 +236,7 @@ def betti_0(predicates: List[Predicate]) -> int:
     arg_to_predicates: Dict[str, List[Predicate]] = defaultdict(list)
     for p in predicates:
         for arg in p.args:
-            if not is_variable(arg):      # only ground terms connect predicates
+            if not is_variable(arg):  # only ground terms connect predicates
                 arg_to_predicates[arg].append(p)
 
     for _, sharing_preds in arg_to_predicates.items():
@@ -255,13 +252,14 @@ def betti_0(predicates: List[Predicate]) -> int:
 #  FORWARD CHAINING
 # ─────────────────────────────────────────────
 
+
 def forward_chain(
     facts: Set[Predicate],
     rules: List[SymbolicRule],
     max_depth: int = 50,
 ) -> Tuple[Set[Predicate], List[LogicClause]]:
     """Forward chaining inference: derive all provable conclusions.
-    
+
     Algorithm:
         1. Start with known facts
         2. For each rule, check if all antecedents can be unified with facts
@@ -274,15 +272,15 @@ def forward_chain(
     """
     derived = set(facts)
     audit_trail: List[LogicClause] = []
-    
+
     for depth in range(max_depth):
         new_facts: Set[Predicate] = set()
-        
+
         for rule in rules:
             # Try to unify all antecedents with current facts
             theta: Substitution = {}
             all_unified = True
-            
+
             for ant in rule.antecedents:
                 matched = False
                 for fact in derived:
@@ -300,13 +298,15 @@ def forward_chain(
                     grounded = apply_substitution(consequent, theta)
                     if grounded not in derived:
                         new_facts.add(grounded)
-                        audit_trail.append(LogicClause(
-                            predicates=[grounded],
-                            connective=LogicConnective.IMPLIES,
-                            satisfied=True,
-                            weight=rule.weight,
-                            source_rule=rule.id,
-                        ))
+                        audit_trail.append(
+                            LogicClause(
+                                predicates=[grounded],
+                                connective=LogicConnective.IMPLIES,
+                                satisfied=True,
+                                weight=rule.weight,
+                                source_rule=rule.id,
+                            )
+                        )
 
         if not new_facts:
             break  # fixpoint reached

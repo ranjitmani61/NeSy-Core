@@ -22,26 +22,24 @@ Usage:
     trainer = pl.Trainer(max_epochs=10)
     trainer.fit(module, datamodule)
 """
+
 from __future__ import annotations
 
+import importlib.util
 import logging
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type
+from typing import Any, Callable, Tuple
 
-from nesy.core.exceptions import NeSyError
 
 logger = logging.getLogger(__name__)
 
 # Check availability at import time for informational purposes
-try:
-    import pytorch_lightning as _pl
-    import torch as _torch
-
-    PL_AVAILABLE = True
-except ImportError:  # pragma: no cover
-    PL_AVAILABLE = False
+PL_AVAILABLE = (
+    importlib.util.find_spec("pytorch_lightning") is not None
+    and importlib.util.find_spec("torch") is not None
+)
+if not PL_AVAILABLE:  # pragma: no cover
     logger.info(
-        "pytorch-lightning/torch not installed. "
-        "NeSyLightningModule.build() will raise ImportError."
+        "pytorch-lightning/torch not installed. NeSyLightningModule.build() will raise ImportError."
     )
 
 
@@ -104,7 +102,6 @@ class NeSyLightningModule:
         try:
             import pytorch_lightning as pl
             import torch
-            import torch.nn as nn
         except ImportError:
             raise ImportError(
                 "NeSyLightningModule requires pytorch-lightning and torch. "
@@ -131,9 +128,7 @@ class NeSyLightningModule:
                 """Forward pass through backbone's encode()."""
                 return self._backbone.encode(x)
 
-            def training_step(
-                self, batch: Tuple[Any, Any], batch_idx: int
-            ) -> Any:
+            def training_step(self, batch: Tuple[Any, Any], batch_idx: int) -> Any:
                 """Training step: task loss + EWC penalty.
 
                 Mathematical basis (Kirkpatrick et al., 2017):

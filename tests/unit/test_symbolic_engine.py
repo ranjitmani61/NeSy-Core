@@ -1,7 +1,8 @@
 """tests/unit/test_symbolic_engine.py"""
+
 import pytest
 from nesy.symbolic.engine import SymbolicEngine
-from nesy.core.types import Predicate, SymbolicRule
+from nesy.core.types import Predicate
 from nesy.core.exceptions import SymbolicConflict
 
 

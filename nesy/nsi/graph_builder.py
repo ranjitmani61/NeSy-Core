@@ -10,7 +10,7 @@ Three construction strategies:
    Count co-occurrence P(b|a) across documents.
    causal_strength = 0.5 (statistical, not confirmed causal)
    temporal_stability = 0.5 (assumed stable, unvalidated)
-   
+
    This requires no domain expertise but may include spurious edges.
 
 2. EXPERT-DEFINED (Curated):
@@ -27,20 +27,21 @@ into ConceptGraphEngine via add_edges().
 Mathematical basis:
     Co-occurrence probability:
         P(b|a) = count(a,b) / count(a)
-        
+
     Pointwise Mutual Information (PMI) filter:
         PMI(a,b) = log P(a,b) / (P(a) × P(b))
         Only keep edges where PMI > 0 (positive association)
-    
+
     Normalised PMI → [0,1] for use as cooccurrence_prob:
         NPMI(a,b) = PMI(a,b) / (-log P(a,b))
 """
+
 from __future__ import annotations
 
 import logging
 import math
-from collections import Counter, defaultdict
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from collections import Counter
+from typing import Dict, List, Tuple
 
 from nesy.core.types import ConceptEdge
 
@@ -49,31 +50,31 @@ logger = logging.getLogger(__name__)
 
 class CorpusGraphBuilder:
     """Build concept graph from text corpus via co-occurrence statistics.
-    
+
     Usage:
         builder = CorpusGraphBuilder(window_size=5, min_count=10, npmi_threshold=0.1)
-        
+
         for document in corpus:
             builder.add_document(tokenize(document))
-        
+
         edges = builder.build_edges(causal_strength=0.5, temporal_stability=0.5)
         cge.add_edges(edges)
     """
 
     def __init__(
         self,
-        window_size:    int   = 5,      # co-occurrence window
-        min_count:      int   = 10,     # minimum pair count to include
-        npmi_threshold: float = 0.10,   # minimum NPMI to create edge
-        max_edges:      int   = 10000,  # cap total edges
+        window_size: int = 5,  # co-occurrence window
+        min_count: int = 10,  # minimum pair count to include
+        npmi_threshold: float = 0.10,  # minimum NPMI to create edge
+        max_edges: int = 10000,  # cap total edges
     ):
-        self.window_size    = window_size
-        self.min_count      = min_count
+        self.window_size = window_size
+        self.min_count = min_count
         self.npmi_threshold = npmi_threshold
-        self.max_edges      = max_edges
+        self.max_edges = max_edges
 
-        self._unigram:   Counter = Counter()    # concept → count
-        self._bigram:    Counter = Counter()    # (a, b) → count
+        self._unigram: Counter = Counter()  # concept → count
+        self._bigram: Counter = Counter()  # (a, b) → count
         self._total_docs = 0
 
     def add_document(self, tokens: List[str]) -> None:
@@ -96,11 +97,11 @@ class CorpusGraphBuilder:
 
     def build_edges(
         self,
-        causal_strength:    float = 0.5,
+        causal_strength: float = 0.5,
         temporal_stability: float = 0.5,
     ) -> List[ConceptEdge]:
         """Build ConceptEdges from accumulated co-occurrence statistics.
-        
+
         Returns edges sorted by NPMI descending.
         """
         total_counts = sum(self._unigram.values())
@@ -117,16 +118,16 @@ class CorpusGraphBuilder:
             count_b = self._unigram[b]
 
             # Probabilities
-            p_a  = count_a  / total_counts
-            p_b  = count_b  / total_counts
+            p_a = count_a / total_counts
+            p_b = count_b / total_counts
             p_ab = count_ab / total_counts
 
             if p_a <= 0 or p_b <= 0 or p_ab <= 0:
                 continue
 
             # NPMI (Normalised Pointwise Mutual Information)
-            pmi  = math.log(p_ab / (p_a * p_b))
-            npmi = pmi / (-math.log(p_ab))   # ∈ [-1, 1]
+            pmi = math.log(p_ab / (p_a * p_b))
+            npmi = pmi / (-math.log(p_ab))  # ∈ [-1, 1]
 
             if npmi < self.npmi_threshold:
                 continue
@@ -152,10 +153,10 @@ class CorpusGraphBuilder:
 
         # Sort by NPMI and return top max_edges
         edges.sort(key=lambda x: -x[0])
-        result = [e for _, e in edges[:self.max_edges]]
+        result = [e for _, e in edges[: self.max_edges]]
         logger.info(
             f"CorpusGraphBuilder: built {len(result)} edges from "
-            f"{len(self._bigram)//2} unique pairs "
+            f"{len(self._bigram) // 2} unique pairs "
             f"({self._total_docs} documents)"
         )
         return result
@@ -171,13 +172,13 @@ class CorpusGraphBuilder:
 
 class ExpertGraphBuilder:
     """Build concept graph from expert-defined edge specifications.
-    
+
     The recommended approach for high-stakes domains (medical, legal).
     Experts define edges with explicit causal and temporal parameters.
-    
+
     Usage:
         builder = ExpertGraphBuilder(domain="medical")
-        
+
         builder.add(
             source="fever",
             target="blood_test",
@@ -186,11 +187,11 @@ class ExpertGraphBuilder:
             temporal="permanent",  # → 1.0
             notes="Fever always warrants CBC panel",
         )
-        
+
         edges = builder.build_edges()
     """
 
-    CAUSAL_MAP   = {"necessary": 1.0, "associated": 0.5, "weak": 0.1}
+    CAUSAL_MAP = {"necessary": 1.0, "associated": 0.5, "weak": 0.1}
     TEMPORAL_MAP = {"permanent": 1.0, "stable": 0.5, "transient": 0.1}
 
     def __init__(self, domain: str = "general"):
@@ -199,22 +200,24 @@ class ExpertGraphBuilder:
 
     def add(
         self,
-        source:           str,
-        target:           str,
+        source: str,
+        target: str,
         conditional_prob: float,
-        causal:           str = "associated",   # "necessary" | "associated" | "weak"
-        temporal:         str = "stable",       # "permanent" | "stable" | "transient"
-        notes:            str = "",
+        causal: str = "associated",  # "necessary" | "associated" | "weak"
+        temporal: str = "stable",  # "permanent" | "stable" | "transient"
+        notes: str = "",
     ) -> "ExpertGraphBuilder":
         """Add an expert-defined edge. Chainable."""
-        self._specs.append({
-            "source":           source,
-            "target":           target,
-            "conditional_prob": conditional_prob,
-            "causal":           causal,
-            "temporal":         temporal,
-            "notes":            notes,
-        })
+        self._specs.append(
+            {
+                "source": source,
+                "target": target,
+                "conditional_prob": conditional_prob,
+                "causal": causal,
+                "temporal": temporal,
+                "notes": notes,
+            }
+        )
         return self
 
     def build_edges(self) -> List[ConceptEdge]:
@@ -237,7 +240,7 @@ class ExpertGraphBuilder:
 
 class KGDerivedBuilder:
     """Build concept graph from external knowledge graph triples.
-    
+
     Converts (subject, predicate, object) triples to ConceptEdges.
     Weight estimation from relation type:
         "causes"          → causal=1.0, temporal=1.0
@@ -247,13 +250,13 @@ class KGDerivedBuilder:
     """
 
     RELATION_WEIGHTS: Dict[str, Tuple[float, float]] = {
-        "causes":           (1.0, 1.0),
-        "directly_causes":  (1.0, 1.0),
-        "associated_with":  (0.5, 0.5),
-        "related_to":       (0.5, 0.5),
-        "may_cause":        (0.5, 0.5),
-        "co_occurs_with":   (0.1, 0.5),
-        "mentioned_with":   (0.1, 0.1),
+        "causes": (1.0, 1.0),
+        "directly_causes": (1.0, 1.0),
+        "associated_with": (0.5, 0.5),
+        "related_to": (0.5, 0.5),
+        "may_cause": (0.5, 0.5),
+        "co_occurs_with": (0.1, 0.5),
+        "mentioned_with": (0.1, 0.1),
     }
 
     def __init__(self, default_prob: float = 0.60):
@@ -270,10 +273,7 @@ class KGDerivedBuilder:
     def build_edges(self) -> List[ConceptEdge]:
         edges = []
         for subject, relation, obj in self._triples:
-            cs, ts = self.RELATION_WEIGHTS.get(
-                relation.lower().replace(" ", "_"),
-                (0.1, 0.5)
-            )
+            cs, ts = self.RELATION_WEIGHTS.get(relation.lower().replace(" ", "_"), (0.1, 0.5))
             try:
                 edge = ConceptEdge(
                     source=subject,

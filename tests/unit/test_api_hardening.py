@@ -21,11 +21,8 @@ Covers:
 from __future__ import annotations
 
 import json
-import math
-import os
-import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -45,8 +42,6 @@ from nesy.core.exceptions import (
 from nesy.core.types import (
     ConceptEdge,
     ConfidenceReport,
-    LogicClause,
-    LogicConnective,
     NSIOutput,
     NullItem,
     NullSet,
@@ -81,6 +76,7 @@ from nesy.core.validators import (
 #  FIXTURES
 # ═══════════════════════════════════════════════════════════════════
 
+
 @pytest.fixture
 def model():
     return NeSyModel(domain="test")
@@ -89,16 +85,23 @@ def model():
 @pytest.fixture
 def medical_model():
     m = NeSyModel(domain="medical")
-    m.add_rule(SymbolicRule(
-        id="fever-infection",
-        antecedents=[Predicate("HasSymptom", ("?p", "fever"))],
-        consequents=[Predicate("PossiblyHas", ("?p", "infection"))],
-        weight=0.8,
-    ))
-    m.add_concept_edge(ConceptEdge(
-        source="fever", target="blood_test",
-        cooccurrence_prob=0.85, causal_strength=1.0, temporal_stability=1.0,
-    ))
+    m.add_rule(
+        SymbolicRule(
+            id="fever-infection",
+            antecedents=[Predicate("HasSymptom", ("?p", "fever"))],
+            consequents=[Predicate("PossiblyHas", ("?p", "infection"))],
+            weight=0.8,
+        )
+    )
+    m.add_concept_edge(
+        ConceptEdge(
+            source="fever",
+            target="blood_test",
+            cooccurrence_prob=0.85,
+            causal_strength=1.0,
+            temporal_stability=1.0,
+        )
+    )
     m.register_critical_concept("blood_test", "diagnostic_test")
     return m
 
@@ -116,13 +119,20 @@ def rejected_output(model):
     ns = NullSet(items=[], present_set=ps)
     trace = ReasoningTrace(
         steps=[ReasoningStep(0, "halted", None, [], 0.0)],
-        rules_activated=[], neural_confidence=0.0,
-        symbolic_confidence=0.0, null_violations=[], logic_clauses=[],
+        rules_activated=[],
+        neural_confidence=0.0,
+        symbolic_confidence=0.0,
+        null_violations=[],
+        logic_clauses=[],
     )
     conf = ConfidenceReport(factual=0.0, reasoning=0.0, knowledge_boundary=0.0)
     return NSIOutput(
-        answer="", confidence=conf, reasoning_trace=trace,
-        null_set=ns, status=OutputStatus.REJECTED, flags=["test_reject"],
+        answer="",
+        confidence=conf,
+        reasoning_trace=trace,
+        null_set=ns,
+        status=OutputStatus.REJECTED,
+        flags=["test_reject"],
     )
 
 
@@ -132,13 +142,20 @@ def _make_good_output():
     ns = NullSet(items=[], present_set=ps)
     trace = ReasoningTrace(
         steps=[ReasoningStep(0, "OK", None, [], 1.0)],
-        rules_activated=[], neural_confidence=0.9,
-        symbolic_confidence=0.9, null_violations=[], logic_clauses=[],
+        rules_activated=[],
+        neural_confidence=0.9,
+        symbolic_confidence=0.9,
+        null_violations=[],
+        logic_clauses=[],
     )
     conf = ConfidenceReport(factual=0.9, reasoning=0.85, knowledge_boundary=0.82)
     return NSIOutput(
-        answer="Good", confidence=conf, reasoning_trace=trace,
-        null_set=ns, status=OutputStatus.OK, flags=[],
+        answer="Good",
+        confidence=conf,
+        reasoning_trace=trace,
+        null_set=ns,
+        status=OutputStatus.OK,
+        flags=[],
     )
 
 
@@ -148,13 +165,20 @@ def _make_uncertain_output():
     ns = NullSet(items=[], present_set=ps)
     trace = ReasoningTrace(
         steps=[ReasoningStep(0, "OK", None, [], 0.7)],
-        rules_activated=[], neural_confidence=0.7,
-        symbolic_confidence=0.7, null_violations=[], logic_clauses=[],
+        rules_activated=[],
+        neural_confidence=0.7,
+        symbolic_confidence=0.7,
+        null_violations=[],
+        logic_clauses=[],
     )
     conf = ConfidenceReport(factual=0.7, reasoning=0.65, knowledge_boundary=0.62)
     return NSIOutput(
-        answer="Uncertain", confidence=conf, reasoning_trace=trace,
-        null_set=ns, status=OutputStatus.UNCERTAIN, flags=["warn1", "warn2"],
+        answer="Uncertain",
+        confidence=conf,
+        reasoning_trace=trace,
+        null_set=ns,
+        status=OutputStatus.UNCERTAIN,
+        flags=["warn1", "warn2"],
     )
 
 
@@ -164,19 +188,27 @@ def _make_low_output():
     ns = NullSet(items=[], present_set=ps)
     trace = ReasoningTrace(
         steps=[ReasoningStep(0, "weak", None, [], 0.4)],
-        rules_activated=[], neural_confidence=0.4,
-        symbolic_confidence=0.4, null_violations=[], logic_clauses=[],
+        rules_activated=[],
+        neural_confidence=0.4,
+        symbolic_confidence=0.4,
+        null_violations=[],
+        logic_clauses=[],
     )
     conf = ConfidenceReport(factual=0.45, reasoning=0.41, knowledge_boundary=0.40)
     return NSIOutput(
-        answer="Low", confidence=conf, reasoning_trace=trace,
-        null_set=ns, status=OutputStatus.FLAGGED, flags=[],
+        answer="Low",
+        confidence=conf,
+        reasoning_trace=trace,
+        null_set=ns,
+        status=OutputStatus.FLAGGED,
+        flags=[],
     )
 
 
 # ═══════════════════════════════════════════════════════════════════
 #  VALIDATOR WALL — validate_predicate
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestValidatePredicate:
     def test_valid_predicate_no_args(self):
@@ -235,6 +267,7 @@ class TestValidatePredicate:
 #  VALIDATOR WALL — validate_facts
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestValidateFacts:
     def test_valid_ground_facts(self):
         facts = {
@@ -257,6 +290,7 @@ class TestValidateFacts:
 # ═══════════════════════════════════════════════════════════════════
 #  VALIDATOR WALL — validate_rule
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestValidateRule:
     def test_valid_rule(self):
@@ -366,19 +400,32 @@ class TestValidateRule:
 #  VALIDATOR WALL — validate_rules_no_duplicates
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestValidateRulesNoDuplicates:
     def test_no_duplicates(self):
         rules = [
-            SymbolicRule(id="r1", antecedents=[Predicate("A", ("x",))],
-                         consequents=[Predicate("B", ("x",))], weight=0.5),
-            SymbolicRule(id="r2", antecedents=[Predicate("C", ("x",))],
-                         consequents=[Predicate("D", ("x",))], weight=0.5),
+            SymbolicRule(
+                id="r1",
+                antecedents=[Predicate("A", ("x",))],
+                consequents=[Predicate("B", ("x",))],
+                weight=0.5,
+            ),
+            SymbolicRule(
+                id="r2",
+                antecedents=[Predicate("C", ("x",))],
+                consequents=[Predicate("D", ("x",))],
+                weight=0.5,
+            ),
         ]
         assert validate_rules_no_duplicates(rules) == []
 
     def test_duplicates_detected(self):
-        r = SymbolicRule(id="r1", antecedents=[Predicate("A", ("x",))],
-                         consequents=[Predicate("B", ("x",))], weight=0.5)
+        r = SymbolicRule(
+            id="r1",
+            antecedents=[Predicate("A", ("x",))],
+            consequents=[Predicate("B", ("x",))],
+            weight=0.5,
+        )
         errs = validate_rules_no_duplicates([r, r])
         assert any("duplicate" in e.lower() for e in errs)
 
@@ -387,35 +434,67 @@ class TestValidateRulesNoDuplicates:
 #  VALIDATOR WALL — validate_immutable_not_overwritten
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestValidateImmutableNotOverwritten:
     def test_no_conflict(self):
-        existing = [SymbolicRule(id="r1", antecedents=[Predicate("A", ("x",))],
-                                 consequents=[Predicate("B", ("x",))], weight=0.5)]
-        new = SymbolicRule(id="r2", antecedents=[Predicate("C", ("x",))],
-                           consequents=[Predicate("D", ("x",))], weight=0.5)
+        existing = [
+            SymbolicRule(
+                id="r1",
+                antecedents=[Predicate("A", ("x",))],
+                consequents=[Predicate("B", ("x",))],
+                weight=0.5,
+            )
+        ]
+        new = SymbolicRule(
+            id="r2",
+            antecedents=[Predicate("C", ("x",))],
+            consequents=[Predicate("D", ("x",))],
+            weight=0.5,
+        )
         assert validate_immutable_not_overwritten(existing, new) == []
 
     def test_immutable_conflict_detected(self):
-        existing = [SymbolicRule(id="r1", antecedents=[Predicate("A", ("x",))],
-                                 consequents=[Predicate("B", ("x",))], weight=0.5,
-                                 immutable=True)]
-        new = SymbolicRule(id="r1", antecedents=[Predicate("C", ("x",))],
-                           consequents=[Predicate("D", ("x",))], weight=0.5)
+        existing = [
+            SymbolicRule(
+                id="r1",
+                antecedents=[Predicate("A", ("x",))],
+                consequents=[Predicate("B", ("x",))],
+                weight=0.5,
+                immutable=True,
+            )
+        ]
+        new = SymbolicRule(
+            id="r1",
+            antecedents=[Predicate("C", ("x",))],
+            consequents=[Predicate("D", ("x",))],
+            weight=0.5,
+        )
         errs = validate_immutable_not_overwritten(existing, new)
         assert any("immutable" in e.lower() for e in errs)
 
     def test_same_id_not_immutable(self):
-        existing = [SymbolicRule(id="r1", antecedents=[Predicate("A", ("x",))],
-                                 consequents=[Predicate("B", ("x",))], weight=0.5,
-                                 immutable=False)]
-        new = SymbolicRule(id="r1", antecedents=[Predicate("C", ("x",))],
-                           consequents=[Predicate("D", ("x",))], weight=0.5)
+        existing = [
+            SymbolicRule(
+                id="r1",
+                antecedents=[Predicate("A", ("x",))],
+                consequents=[Predicate("B", ("x",))],
+                weight=0.5,
+                immutable=False,
+            )
+        ]
+        new = SymbolicRule(
+            id="r1",
+            antecedents=[Predicate("C", ("x",))],
+            consequents=[Predicate("D", ("x",))],
+            weight=0.5,
+        )
         assert validate_immutable_not_overwritten(existing, new) == []
 
 
 # ═══════════════════════════════════════════════════════════════════
 #  VALIDATOR WALL — validate_concept_edge
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestValidateConceptEdge:
     def test_valid_edge(self):
@@ -487,6 +566,7 @@ class TestValidateConceptEdge:
 #  VALIDATOR WALL — validate_confidence_report
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestValidateConfidenceReport:
     def test_valid_report(self):
         r = ConfidenceReport(factual=0.8, reasoning=0.7, knowledge_boundary=0.9)
@@ -523,6 +603,7 @@ class TestValidateConfidenceReport:
 # ═══════════════════════════════════════════════════════════════════
 #  VALIDATOR WALL — validate_present_set / validate_null_set
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestValidatePresentSet:
     def test_valid(self):
@@ -579,6 +660,7 @@ class TestValidateNullSet:
 #  VALIDATOR WALL — numerical stability
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestNumericalStability:
     def test_clamp_normal(self):
         assert clamp_probability(0.5) == 0.5
@@ -620,6 +702,7 @@ class TestNumericalStability:
 #  VALIDATOR WALL — convenience functions
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestAssertValidFunctions:
     def test_assert_valid_facts_ok(self):
         facts = {Predicate("A", ("x",))}
@@ -631,8 +714,12 @@ class TestAssertValidFunctions:
             assert_valid_facts(facts)
 
     def test_assert_valid_rule_ok(self):
-        r = SymbolicRule(id="r1", antecedents=[Predicate("A", ("x",))],
-                         consequents=[Predicate("B", ("x",))], weight=0.5)
+        r = SymbolicRule(
+            id="r1",
+            antecedents=[Predicate("A", ("x",))],
+            consequents=[Predicate("B", ("x",))],
+            weight=0.5,
+        )
         assert_valid_rule(r)  # no exception
 
     def test_assert_valid_rule_raises(self):
@@ -679,22 +766,31 @@ class TestAssertValidFunctions:
 #  NESY MODEL — basic API
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestNeSyModelBasic:
     def test_init_defaults(self, model):
         assert model.domain == "test"
         assert model.rule_count == 0
 
     def test_add_rule_chainable(self, model):
-        r = SymbolicRule(id="r1", antecedents=[Predicate("A", ("x",))],
-                         consequents=[Predicate("B", ("x",))], weight=0.5)
+        r = SymbolicRule(
+            id="r1",
+            antecedents=[Predicate("A", ("x",))],
+            consequents=[Predicate("B", ("x",))],
+            weight=0.5,
+        )
         result = model.add_rule(r)
         assert result is model
         assert model.rule_count == 1
 
     def test_add_rules_chainable(self, model):
         rules = [
-            SymbolicRule(id=f"r{i}", antecedents=[Predicate("A", ("x",))],
-                         consequents=[Predicate("B", ("x",))], weight=0.5)
+            SymbolicRule(
+                id=f"r{i}",
+                antecedents=[Predicate("A", ("x",))],
+                consequents=[Predicate("B", ("x",))],
+                weight=0.5,
+            )
             for i in range(3)
         ]
         result = model.add_rules(rules)
@@ -707,8 +803,7 @@ class TestNeSyModelBasic:
         assert result is model
 
     def test_add_concept_edges_chainable(self, model):
-        edges = [ConceptEdge("a", "b", 0.8, 1.0, 0.5),
-                 ConceptEdge("b", "c", 0.7, 0.5, 1.0)]
+        edges = [ConceptEdge("a", "b", 0.8, 1.0, 0.5), ConceptEdge("b", "c", 0.7, 0.5, 1.0)]
         result = model.add_concept_edges(edges)
         assert result is model
 
@@ -717,9 +812,13 @@ class TestNeSyModelBasic:
         assert result is model
 
     def test_anchor_chainable(self, model):
-        r = SymbolicRule(id="anchor1", antecedents=[Predicate("A", ("x",))],
-                         consequents=[Predicate("B", ("x",))], weight=1.0,
-                         immutable=True)
+        r = SymbolicRule(
+            id="anchor1",
+            antecedents=[Predicate("A", ("x",))],
+            consequents=[Predicate("B", ("x",))],
+            weight=1.0,
+            immutable=True,
+        )
         result = model.anchor(r)
         assert result is model
         assert model.anchored_rules == 1
@@ -734,14 +833,19 @@ class TestNeSyModelBasic:
 #  NESY MODEL — reason()
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestNeSyModelReason:
     def test_reason_basic(self, medical_model):
         facts = {Predicate("HasSymptom", ("patient_1", "fever"))}
         output = medical_model.reason(facts, context_type="medical")
         assert isinstance(output, NSIOutput)
         # blood_test is registered as critical → Type3 null → REJECTED is valid
-        assert output.status in (OutputStatus.OK, OutputStatus.UNCERTAIN,
-                                  OutputStatus.FLAGGED, OutputStatus.REJECTED)
+        assert output.status in (
+            OutputStatus.OK,
+            OutputStatus.UNCERTAIN,
+            OutputStatus.FLAGGED,
+            OutputStatus.REJECTED,
+        )
 
     def test_reason_no_rules_no_derivation(self, model):
         facts = {Predicate("A", ("x",))}
@@ -750,15 +854,14 @@ class TestNeSyModelReason:
 
     def test_reason_with_raw_input(self, medical_model):
         facts = {Predicate("HasSymptom", ("patient_1", "fever"))}
-        output = medical_model.reason(facts, context_type="medical",
-                                       raw_input="Test query")
+        output = medical_model.reason(facts, context_type="medical", raw_input="Test query")
         assert isinstance(output, NSIOutput)
 
     def test_reason_symbolic_conflict_path(self, model):
         """Force SymbolicConflict → REJECTED output."""
-        with patch.object(model._symbolic, "reason",
-                          side_effect=SymbolicConflict(
-                              "conflict", ["r1"], {})):
+        with patch.object(
+            model._symbolic, "reason", side_effect=SymbolicConflict("conflict", ["r1"], {})
+        ):
             facts = {Predicate("A", ("x",))}
             output = model.reason(facts)
             assert output.status == OutputStatus.REJECTED
@@ -767,11 +870,17 @@ class TestNeSyModelReason:
     def test_reason_critical_null_violation_path(self, model):
         """Force CriticalNullViolation → REJECTED output."""
         # Make symbolic.reason succeed, but monitor.evaluate raise
-        with patch.object(model._monitor, "evaluate",
-                          side_effect=CriticalNullViolation(
-                              "critical null", ["item1"])):
-            r = SymbolicRule(id="r1", antecedents=[Predicate("A", ("x",))],
-                             consequents=[Predicate("B", ("x",))], weight=0.5)
+        with patch.object(
+            model._monitor,
+            "evaluate",
+            side_effect=CriticalNullViolation("critical null", ["item1"]),
+        ):
+            r = SymbolicRule(
+                id="r1",
+                antecedents=[Predicate("A", ("x",))],
+                consequents=[Predicate("B", ("x",))],
+                weight=0.5,
+            )
             model.add_rule(r)
             facts = {Predicate("A", ("x",))}
             output = model.reason(facts)
@@ -780,10 +889,18 @@ class TestNeSyModelReason:
 
     def test_deterministic_answer_ordering(self, model):
         """Same inputs → same answer string (sorted derived facts)."""
-        r1 = SymbolicRule(id="r1", antecedents=[Predicate("A", ("x",))],
-                          consequents=[Predicate("Z", ("x",))], weight=0.5)
-        r2 = SymbolicRule(id="r2", antecedents=[Predicate("A", ("x",))],
-                          consequents=[Predicate("M", ("x",))], weight=0.5)
+        r1 = SymbolicRule(
+            id="r1",
+            antecedents=[Predicate("A", ("x",))],
+            consequents=[Predicate("Z", ("x",))],
+            weight=0.5,
+        )
+        r2 = SymbolicRule(
+            id="r2",
+            antecedents=[Predicate("A", ("x",))],
+            consequents=[Predicate("M", ("x",))],
+            weight=0.5,
+        )
         model.add_rules([r1, r2])
         facts = {Predicate("A", ("x",))}
         o1 = model.reason(facts)
@@ -795,18 +912,27 @@ class TestNeSyModelReason:
 #  NESY MODEL — learn()
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestNeSyModelLearn:
     def test_learn_non_anchor(self, model):
-        r = SymbolicRule(id="r1", antecedents=[Predicate("A", ("x",))],
-                         consequents=[Predicate("B", ("x",))], weight=0.5)
+        r = SymbolicRule(
+            id="r1",
+            antecedents=[Predicate("A", ("x",))],
+            consequents=[Predicate("B", ("x",))],
+            weight=0.5,
+        )
         result = model.learn(r)
         assert result is model
         assert model.rule_count == 1
 
     def test_learn_with_anchor(self, model):
-        r = SymbolicRule(id="r1", antecedents=[Predicate("A", ("x",))],
-                         consequents=[Predicate("B", ("x",))], weight=0.5,
-                         immutable=True)
+        r = SymbolicRule(
+            id="r1",
+            antecedents=[Predicate("A", ("x",))],
+            consequents=[Predicate("B", ("x",))],
+            weight=0.5,
+            immutable=True,
+        )
         result = model.learn(r, make_anchor=True)
         assert result is model
         assert model.anchored_rules == 1
@@ -815,6 +941,7 @@ class TestNeSyModelLearn:
 # ═══════════════════════════════════════════════════════════════════
 #  NESY MODEL — explain()
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestNeSyModelExplain:
     def test_explain_basic(self, medical_model, sample_output):
@@ -831,12 +958,14 @@ class TestNeSyModelExplain:
         ns = NullSet(items=[], present_set=ps)
         trace = ReasoningTrace(
             steps=[ReasoningStep(0, "step0", None, [], 0.5)],
-            rules_activated=[], neural_confidence=0.5,
-            symbolic_confidence=0.5, null_violations=[], logic_clauses=[],
+            rules_activated=[],
+            neural_confidence=0.5,
+            symbolic_confidence=0.5,
+            null_violations=[],
+            logic_clauses=[],
         )
         conf = ConfidenceReport(factual=0.5, reasoning=0.5, knowledge_boundary=0.5)
-        output = NSIOutput("test", conf, trace, ns,
-                           OutputStatus.FLAGGED, ["flag1", "flag2"])
+        output = NSIOutput("test", conf, trace, ns, OutputStatus.FLAGGED, ["flag1", "flag2"])
         explanation = model.explain(output)
         assert "flag1" in explanation
         assert "flag2" in explanation
@@ -848,12 +977,14 @@ class TestNeSyModelExplain:
         ns = NullSet(items=[critical], present_set=ps)
         trace = ReasoningTrace(
             steps=[ReasoningStep(0, "step0", None, [], 0.5)],
-            rules_activated=[], neural_confidence=0.5,
-            symbolic_confidence=0.5, null_violations=[], logic_clauses=[],
+            rules_activated=[],
+            neural_confidence=0.5,
+            symbolic_confidence=0.5,
+            null_violations=[],
+            logic_clauses=[],
         )
         conf = ConfidenceReport(factual=0.5, reasoning=0.5, knowledge_boundary=0.5)
-        output = NSIOutput("test", conf, trace, ns,
-                           OutputStatus.FLAGGED, [])
+        output = NSIOutput("test", conf, trace, ns, OutputStatus.FLAGGED, [])
         explanation = model.explain(output)
         assert "CRITICAL" in explanation
         assert "bp" in explanation
@@ -864,12 +995,14 @@ class TestNeSyModelExplain:
         ns = NullSet(items=[meaningful], present_set=ps)
         trace = ReasoningTrace(
             steps=[ReasoningStep(0, "step0", None, [], 0.5)],
-            rules_activated=[], neural_confidence=0.5,
-            symbolic_confidence=0.5, null_violations=[], logic_clauses=[],
+            rules_activated=[],
+            neural_confidence=0.5,
+            symbolic_confidence=0.5,
+            null_violations=[],
+            logic_clauses=[],
         )
         conf = ConfidenceReport(factual=0.5, reasoning=0.5, knowledge_boundary=0.5)
-        output = NSIOutput("test", conf, trace, ns,
-                           OutputStatus.OK, [])
+        output = NSIOutput("test", conf, trace, ns, OutputStatus.OK, [])
         explanation = model.explain(output)
         assert "Meaningful" in explanation
         assert "y" in explanation
@@ -878,6 +1011,7 @@ class TestNeSyModelExplain:
 # ═══════════════════════════════════════════════════════════════════
 #  NESY MODEL — save/load concept graph
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestNeSyModelSaveLoad:
     def test_save_and_load(self, medical_model, tmp_path):
@@ -894,6 +1028,7 @@ class TestNeSyModelSaveLoad:
 # ═══════════════════════════════════════════════════════════════════
 #  NESY MODEL — _facts_to_answer, _make_rejected_output
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestNeSyModelPrivateHelpers:
     def test_facts_to_answer_no_new(self, model):
@@ -926,6 +1061,7 @@ class TestNeSyModelPrivateHelpers:
 # ═══════════════════════════════════════════════════════════════════
 #  PROOF CAPSULE (PCAP)
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestProofCapsule:
     def test_export_proof_capsule(self, medical_model, sample_output):
@@ -997,6 +1133,7 @@ class TestProofCapsule:
 #  COUNTERFACTUAL FIX GENERATOR (CFG)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestCounterfactualFix:
     def test_suggest_fixes_with_nulls(self, medical_model, sample_output):
         fixes = medical_model.suggest_fixes(sample_output)
@@ -1011,8 +1148,12 @@ class TestCounterfactualFix:
         ps = PresentSet(concepts={"a"}, context_type="general")
         ns = NullSet(items=[], present_set=ps)
         trace = ReasoningTrace(
-            steps=[], rules_activated=[], neural_confidence=0.9,
-            symbolic_confidence=0.9, null_violations=[], logic_clauses=[],
+            steps=[],
+            rules_activated=[],
+            neural_confidence=0.9,
+            symbolic_confidence=0.9,
+            null_violations=[],
+            logic_clauses=[],
         )
         conf = ConfidenceReport(factual=0.9, reasoning=0.9, knowledge_boundary=0.9)
         output = NSIOutput("ok", conf, trace, ns, OutputStatus.OK, [])
@@ -1024,8 +1165,12 @@ class TestCounterfactualFix:
         critical = NullItem("bp", 0.9, NullType.TYPE3_CRITICAL, ["a"], 2.0)
         ns = NullSet(items=[critical], present_set=ps)
         trace = ReasoningTrace(
-            steps=[], rules_activated=[], neural_confidence=0.5,
-            symbolic_confidence=0.5, null_violations=[], logic_clauses=[],
+            steps=[],
+            rules_activated=[],
+            neural_confidence=0.5,
+            symbolic_confidence=0.5,
+            null_violations=[],
+            logic_clauses=[],
         )
         conf = ConfidenceReport(factual=0.5, reasoning=0.5, knowledge_boundary=0.5)
         output = NSIOutput("low", conf, trace, ns, OutputStatus.FLAGGED, [])
@@ -1039,8 +1184,12 @@ class TestCounterfactualFix:
         meaningful = NullItem("y", 0.6, NullType.TYPE2_MEANINGFUL, ["a"])
         ns = NullSet(items=[meaningful], present_set=ps)
         trace = ReasoningTrace(
-            steps=[], rules_activated=[], neural_confidence=0.5,
-            symbolic_confidence=0.5, null_violations=[], logic_clauses=[],
+            steps=[],
+            rules_activated=[],
+            neural_confidence=0.5,
+            symbolic_confidence=0.5,
+            null_violations=[],
+            logic_clauses=[],
         )
         conf = ConfidenceReport(factual=0.5, reasoning=0.5, knowledge_boundary=0.5)
         output = NSIOutput("mid", conf, trace, ns, OutputStatus.OK, [])
@@ -1053,8 +1202,12 @@ class TestCounterfactualFix:
         expected = NullItem("z", 0.1, NullType.TYPE1_EXPECTED, ["a"])
         ns = NullSet(items=[expected], present_set=ps)
         trace = ReasoningTrace(
-            steps=[], rules_activated=[], neural_confidence=0.9,
-            symbolic_confidence=0.9, null_violations=[], logic_clauses=[],
+            steps=[],
+            rules_activated=[],
+            neural_confidence=0.9,
+            symbolic_confidence=0.9,
+            null_violations=[],
+            logic_clauses=[],
         )
         conf = ConfidenceReport(factual=0.9, reasoning=0.9, knowledge_boundary=0.9)
         output = NSIOutput("ok", conf, trace, ns, OutputStatus.OK, [])
@@ -1069,8 +1222,12 @@ class TestCounterfactualFix:
         ]
         ns = NullSet(items=items, present_set=ps)
         trace = ReasoningTrace(
-            steps=[], rules_activated=[], neural_confidence=0.5,
-            symbolic_confidence=0.5, null_violations=[], logic_clauses=[],
+            steps=[],
+            rules_activated=[],
+            neural_confidence=0.5,
+            symbolic_confidence=0.5,
+            null_violations=[],
+            logic_clauses=[],
         )
         conf = ConfidenceReport(factual=0.5, reasoning=0.5, knowledge_boundary=0.5)
         output = NSIOutput("low", conf, trace, ns, OutputStatus.FLAGGED, [])
@@ -1082,6 +1239,7 @@ class TestCounterfactualFix:
 # ═══════════════════════════════════════════════════════════════════
 #  TRUST BUDGET (TB)
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestTrustBudget:
     def test_trust_budget_ok(self, model):
@@ -1111,8 +1269,7 @@ class TestTrustBudget:
     def test_trust_budget_with_context(self, medical_model):
         facts = {Predicate("HasSymptom", ("patient_1", "fever"))}
         result = medical_model.trust_budget_reason(
-            facts, budget=5.0, context_type="medical",
-            raw_input="test"
+            facts, budget=5.0, context_type="medical", raw_input="test"
         )
         assert result.output.status != OutputStatus.REJECTED or result.cost > 0
 
@@ -1120,6 +1277,7 @@ class TestTrustBudget:
 # ═══════════════════════════════════════════════════════════════════
 #  DUAL-CHANNEL VERDICT (DCV)
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestDualChannelVerdict:
     def test_grade_a(self, model):
@@ -1154,12 +1312,15 @@ class TestDualChannelVerdict:
         critical = NullItem("bp", 0.9, NullType.TYPE3_CRITICAL, ["a"])
         ns = NullSet(items=[critical], present_set=ps)
         trace = ReasoningTrace(
-            steps=[], rules_activated=[], neural_confidence=0.8,
-            symbolic_confidence=0.8, null_violations=[], logic_clauses=[],
+            steps=[],
+            rules_activated=[],
+            neural_confidence=0.8,
+            symbolic_confidence=0.8,
+            null_violations=[],
+            logic_clauses=[],
         )
         conf = ConfidenceReport(factual=0.8, reasoning=0.8, knowledge_boundary=0.8)
-        output = NSIOutput("test", conf, trace, ns,
-                           OutputStatus.FLAGGED, [])
+        output = NSIOutput("test", conf, trace, ns, OutputStatus.FLAGGED, [])
         verdict = model.dual_channel_verdict(output)
         assert verdict.compliance_grade == "C"
 
@@ -1176,6 +1337,7 @@ class TestDualChannelVerdict:
 # ═══════════════════════════════════════════════════════════════════
 #  EDGE CONSISTENCY SEAL (ECS)
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestEdgeConsistencySeal:
     def test_seal_basic(self, medical_model):
@@ -1207,16 +1369,17 @@ class TestEdgeConsistencySeal:
 #  NESY MODEL — strict mode
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestNeSyModelStrictMode:
     def test_strict_mode_constructor(self):
-        model = NeSyModel(domain="test", strict_mode=True,
-                          doubt_threshold=0.5, lambda_ewc=500.0)
+        model = NeSyModel(domain="test", strict_mode=True, doubt_threshold=0.5, lambda_ewc=500.0)
         assert model.domain == "test"
 
 
 # ═══════════════════════════════════════════════════════════════════
 #  EDGE CASES & REGRESSION GUARDS
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestEdgeCases:
     def test_reason_with_empty_derived_set(self, model):
@@ -1230,8 +1393,12 @@ class TestEdgeCases:
         assert medical_model.concept_graph_stats["edges"] >= 1
 
     def test_multiple_chained_operations(self, model):
-        r = SymbolicRule(id="r1", antecedents=[Predicate("A", ("x",))],
-                         consequents=[Predicate("B", ("x",))], weight=0.5)
+        r = SymbolicRule(
+            id="r1",
+            antecedents=[Predicate("A", ("x",))],
+            consequents=[Predicate("B", ("x",))],
+            weight=0.5,
+        )
         edge = ConceptEdge("a", "b", 0.8, 1.0, 0.5)
         model.add_rule(r).add_concept_edge(edge).register_critical_concept("b", "test")
         assert model.rule_count == 1
@@ -1254,22 +1421,35 @@ class TestEdgeCases:
         ps = PresentSet(concepts={"a"}, context_type="general")
         ns = NullSet(items=[], present_set=ps)
         trace = ReasoningTrace(
-            steps=[], rules_activated=[], neural_confidence=0.9,
-            symbolic_confidence=0.9, null_violations=[], logic_clauses=[],
+            steps=[],
+            rules_activated=[],
+            neural_confidence=0.9,
+            symbolic_confidence=0.9,
+            null_violations=[],
+            logic_clauses=[],
         )
         conf = ConfidenceReport(factual=0.9, reasoning=0.9, knowledge_boundary=0.9)
         output = NSIOutput("ok", conf, trace, ns, OutputStatus.OK, [])
-        tbr = TrustBudgetResult(output=output, cost=0.1,
-                                remaining_budget=0.9, budget_exceeded=False)
+        tbr = TrustBudgetResult(
+            output=output, cost=0.1, remaining_budget=0.9, budget_exceeded=False
+        )
         assert tbr.cost == 0.1
         assert tbr.remaining_budget == 0.9
         assert tbr.budget_exceeded is False
 
     def test_proof_capsule_dataclass_fields(self):
         pc = ProofCapsule(
-            version="1.0", domain="test", answer="ans", status="ok",
-            confidence={"factual": 0.9}, steps=[], null_items=[],
-            flags=[], checksum="abc", timestamp="t", request_id="id",
+            version="1.0",
+            domain="test",
+            answer="ans",
+            status="ok",
+            confidence={"factual": 0.9},
+            steps=[],
+            null_items=[],
+            flags=[],
+            checksum="abc",
+            timestamp="t",
+            request_id="id",
             reasoning_fingerprint="fp123",
         )
         assert pc.version == "1.0"

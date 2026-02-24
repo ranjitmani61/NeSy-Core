@@ -1,4 +1,5 @@
 """tests/unit/test_nsi.py — NSI null set tests"""
+
 import pytest
 from nesy.nsi.concept_graph import ConceptGraphEngine
 from nesy.nsi.graph_builder import CorpusGraphBuilder, ExpertGraphBuilder, KGDerivedBuilder
@@ -9,14 +10,31 @@ from nesy.core.types import ConceptEdge, NullType, PresentSet
 @pytest.fixture
 def medical_graph():
     cge = ConceptGraphEngine(domain="medical")
-    cge.add_edges([
-        ConceptEdge("fever", "blood_test",
-                    cooccurrence_prob=0.90, causal_strength=1.0, temporal_stability=1.0),
-        ConceptEdge("fever", "temperature_reading",
-                    cooccurrence_prob=0.95, causal_strength=1.0, temporal_stability=1.0),
-        ConceptEdge("chest_pain", "ecg",
-                    cooccurrence_prob=0.90, causal_strength=1.0, temporal_stability=1.0),
-    ])
+    cge.add_edges(
+        [
+            ConceptEdge(
+                "fever",
+                "blood_test",
+                cooccurrence_prob=0.90,
+                causal_strength=1.0,
+                temporal_stability=1.0,
+            ),
+            ConceptEdge(
+                "fever",
+                "temperature_reading",
+                cooccurrence_prob=0.95,
+                causal_strength=1.0,
+                temporal_stability=1.0,
+            ),
+            ConceptEdge(
+                "chest_pain",
+                "ecg",
+                cooccurrence_prob=0.90,
+                causal_strength=1.0,
+                temporal_stability=1.0,
+            ),
+        ]
+    )
     cge.register_concept_class("blood_test", "diagnostic_test")
     cge.register_concept_class("temperature_reading", "vital_signs")
     return cge
@@ -42,7 +60,9 @@ class TestNullSetComputation:
         assert len(type3) > 0
 
     def test_anomaly_score_zero_for_empty_nullset(self, medical_graph):
-        ps = PresentSet(concepts={"fever", "blood_test", "temperature_reading"}, context_type="medical")
+        ps = PresentSet(
+            concepts={"fever", "blood_test", "temperature_reading"}, context_type="medical"
+        )
         ns = medical_graph.compute_null_set(ps)
         # All expected concepts are present → no critical nulls
         assert len(ns.critical_items) == 0
@@ -86,7 +106,7 @@ class TestPathFinder:
 
     def test_no_path_returns_none(self, medical_graph):
         finder = ConceptPathFinder(medical_graph._graph)
-        path = finder.shortest_path("blood_test", "fever")   # reverse — no edge
+        path = finder.shortest_path("blood_test", "fever")  # reverse — no edge
         assert path is None
 
     def test_reachable_from(self, medical_graph):

@@ -11,8 +11,8 @@ Verifies:
     - Large-fact heuristic path
     - Integration with real NeSy rules
 """
+
 import math
-import pytest
 from nesy.core.types import Predicate, SymbolicRule
 from nesy.metacognition.shadow import (
     CounterfactualShadowEngine,
@@ -26,6 +26,7 @@ from nesy.metacognition.shadow import (
 
 
 # ── helpers ──────────────────────────────────────────────────────
+
 
 def pred(name: str, *args: str) -> Predicate:
     return Predicate(name=name, args=tuple(args))
@@ -44,8 +45,8 @@ def rule(rule_id: str, antecedents, consequents, weight: float = 1.0) -> Symboli
 #  _classify_distance
 # ══════════════════════════════════════════════════════════════════
 
-class TestClassifyDistance:
 
+class TestClassifyDistance:
     def test_distance_1_is_critical(self):
         assert _classify_distance(1) == ShadowClass.CRITICAL
 
@@ -72,8 +73,8 @@ class TestClassifyDistance:
 #  ShadowResult properties
 # ══════════════════════════════════════════════════════════════════
 
-class TestShadowResult:
 
+class TestShadowResult:
     def test_is_tautology(self):
         r = ShadowResult(
             conclusion=pred("A", "x"),
@@ -136,8 +137,8 @@ class TestShadowResult:
 #  CounterfactualShadowEngine — exact cases
 # ══════════════════════════════════════════════════════════════════
 
-class TestExactShadow:
 
+class TestExactShadow:
     def setup_method(self):
         self.engine = CounterfactualShadowEngine(max_exact_facts=15, max_shadow_depth=7)
 
@@ -158,11 +159,13 @@ class TestExactShadow:
         Shadow of Infection(p): removing Fever(p) → no derivation. d=1.
         """
         facts = {pred("Fever", "p")}
-        rules_ = [rule(
-            "fever_infection",
-            [pred("Fever", "?p")],
-            [pred("Infection", "?p")],
-        )]
+        rules_ = [
+            rule(
+                "fever_infection",
+                [pred("Fever", "?p")],
+                [pred("Infection", "?p")],
+            )
+        ]
         result = self.engine.compute(pred("Infection", "p"), facts, rules_)
         assert result.distance == 1
         assert result.shadow_class == ShadowClass.CRITICAL
@@ -248,11 +251,13 @@ class TestExactShadow:
         (The rule requires conjunction — both facts are individually critical.)
         """
         facts = {pred("Fever", "p"), pred("ElevatedWBC", "p")}
-        rules_ = [rule(
-            "fever_wbc_infection",
-            [pred("Fever", "?p"), pred("ElevatedWBC", "?p")],
-            [pred("Infection", "?p")],
-        )]
+        rules_ = [
+            rule(
+                "fever_wbc_infection",
+                [pred("Fever", "?p"), pred("ElevatedWBC", "?p")],
+                [pred("Infection", "?p")],
+            )
+        ]
         result = self.engine.compute(pred("Infection", "p"), facts, rules_)
         # Either single fact removal collapses → d=1
         assert result.distance == 1
@@ -286,11 +291,13 @@ class TestExactShadow:
             pred("HasSymptom", "p", "chest_pain"),
             pred("HasSymptom", "p", "sweating"),
         }
-        rules_ = [rule(
-            "cardiac",
-            [pred("HasSymptom", "?p", "chest_pain"), pred("HasSymptom", "?p", "sweating")],
-            [pred("RequiresUrgentTest", "?p", "ecg")],
-        )]
+        rules_ = [
+            rule(
+                "cardiac",
+                [pred("HasSymptom", "?p", "chest_pain"), pred("HasSymptom", "?p", "sweating")],
+                [pred("RequiresUrgentTest", "?p", "ecg")],
+            )
+        ]
         result = self.engine.compute(pred("RequiresUrgentTest", "p", "ecg"), facts, rules_)
         assert result.distance == 1
         assert result.is_critical
@@ -323,8 +330,8 @@ class TestExactShadow:
 #  compute_all → ShadowReport
 # ══════════════════════════════════════════════════════════════════
 
-class TestShadowReport:
 
+class TestShadowReport:
     def setup_method(self):
         self.engine = CounterfactualShadowEngine()
 
@@ -348,8 +355,11 @@ class TestShadowReport:
         System class should reflect the minimum."""
         facts = {
             pred("A", "x"),
-            pred("B", "x"), pred("C", "x"), pred("D", "x"),
-            pred("E", "x"), pred("F", "x"),
+            pred("B", "x"),
+            pred("C", "x"),
+            pred("D", "x"),
+            pred("E", "x"),
+            pred("F", "x"),
         }
         rules_ = [
             rule("ra", [pred("A", "?x")], [pred("CriticalConclusion", "?x")]),
@@ -377,8 +387,7 @@ class TestShadowReport:
         assert len(summary) > 20
 
     def test_all_robust_no_escalation(self):
-        facts = {pred("A", "x"), pred("B", "x"), pred("C", "x"),
-                 pred("D", "x"), pred("E", "x")}
+        facts = {pred("A", "x"), pred("B", "x"), pred("C", "x"), pred("D", "x"), pred("E", "x")}
         rules_ = [
             rule("ra", [pred("A", "?x")], [pred("Z", "?x")]),
             rule("rb", [pred("B", "?x")], [pred("Z", "?x")]),
@@ -395,8 +404,8 @@ class TestShadowReport:
 #  shadow_flags helper
 # ══════════════════════════════════════════════════════════════════
 
-class TestShadowFlags:
 
+class TestShadowFlags:
     def test_critical_report_generates_human_review_flag(self):
         facts = {pred("Fever", "p")}
         rules_ = [rule("r1", [pred("Fever", "?p")], [pred("Diagnosis", "?p")])]
@@ -407,8 +416,7 @@ class TestShadowFlags:
         assert any("HUMAN REVIEW" in f or "CRITICAL" in f for f in flags)
 
     def test_robust_report_generates_no_escalation_flag(self):
-        facts = {pred("A", "x"), pred("B", "x"), pred("C", "x"),
-                 pred("D", "x"), pred("E", "x")}
+        facts = {pred("A", "x"), pred("B", "x"), pred("C", "x"), pred("D", "x"), pred("E", "x")}
         rules_ = [
             rule("ra", [pred("A", "?x")], [pred("Z", "?x")]),
             rule("rb", [pred("B", "?x")], [pred("Z", "?x")]),
@@ -435,8 +443,8 @@ class TestShadowFlags:
 #  _build_explanation
 # ══════════════════════════════════════════════════════════════════
 
-class TestBuildExplanation:
 
+class TestBuildExplanation:
     def test_distance_1_mentions_single(self):
         conclusion = pred("Diagnosis", "patient")
         shadow_set = frozenset({pred("Fever", "patient")})
@@ -468,8 +476,8 @@ class TestBuildExplanation:
 #  Heuristic path (large fact sets)
 # ══════════════════════════════════════════════════════════════════
 
-class TestHeuristicShadow:
 
+class TestHeuristicShadow:
     def test_heuristic_runs_for_large_fact_set(self):
         """Engine should not crash on 20+ facts."""
         engine = CounterfactualShadowEngine(max_exact_facts=5)  # force heuristic
@@ -495,8 +503,8 @@ class TestHeuristicShadow:
 #  Real NeSy-Core integration test
 # ══════════════════════════════════════════════════════════════════
 
-class TestRealIntegration:
 
+class TestRealIntegration:
     def test_socrates_syllogism_shadow(self):
         """
         Classic Socrates case:
@@ -507,8 +515,8 @@ class TestRealIntegration:
         engine = CounterfactualShadowEngine()
         facts = {pred("IsPhilosopher", "socrates")}
         rules_ = [
-            rule("ph_human",    [pred("IsPhilosopher", "?x")], [pred("IsHuman", "?x")]),
-            rule("human_mortal",[pred("IsHuman", "?x")],       [pred("IsMortal", "?x")]),
+            rule("ph_human", [pred("IsPhilosopher", "?x")], [pred("IsHuman", "?x")]),
+            rule("human_mortal", [pred("IsHuman", "?x")], [pred("IsMortal", "?x")]),
         ]
         result = engine.compute(pred("IsMortal", "socrates"), facts, rules_)
         assert result.distance == 1
@@ -527,11 +535,13 @@ class TestRealIntegration:
             pred("Prescribed", "patient", "penicillin"),
             pred("HasAllergy", "patient", "penicillin"),
         }
-        rules_ = [rule(
-            "contraindication",
-            [pred("Prescribed", "?p", "?d"), pred("HasAllergy", "?p", "?d")],
-            [pred("ContraindicationViolated", "?p", "?d")],
-        )]
+        rules_ = [
+            rule(
+                "contraindication",
+                [pred("Prescribed", "?p", "?d"), pred("HasAllergy", "?p", "?d")],
+                [pred("ContraindicationViolated", "?p", "?d")],
+            )
+        ]
         conclusion = pred("ContraindicationViolated", "patient", "penicillin")
         result = engine.compute(conclusion, facts, rules_)
         # Single removal of either fact collapses the safety check

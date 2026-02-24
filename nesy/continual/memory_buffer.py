@@ -14,16 +14,17 @@ Mathematical basis (Reservoir Sampling):
     For each new item i (i > k):
         Accept with probability k/i
         If accepted, replace a random existing buffer item.
-    
+
     Result: Each item has equal probability k/n of being in buffer.
     Unbiased representation of entire data stream.
 """
+
 from __future__ import annotations
 
 import random
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, Generic, List, Optional, TypeVar
+from typing import Any, Dict, List, Optional, TypeVar
 
 T = TypeVar("T")
 logger = logging.getLogger(__name__)
@@ -32,15 +33,16 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MemoryItem:
     """A single item stored in the episodic buffer."""
-    data:     Any
-    task_id:  str
-    label:    Optional[Any] = None
+
+    data: Any
+    task_id: str
+    label: Optional[Any] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 class EpisodicMemoryBuffer:
     """Reservoir-sampled episodic memory buffer.
-    
+
     Maintains a fixed-size, statistically representative sample
     of all examples seen during training — across all tasks.
     """

@@ -5,6 +5,7 @@ FastAPI inference server for NeSy-Core.
 Exposes /reason, /learn, /explain as REST endpoints.
 Requires: pip install fastapi uvicorn
 """
+
 from __future__ import annotations
 import logging
 import uvicorn

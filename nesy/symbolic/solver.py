@@ -21,13 +21,14 @@ Mathematical basis:
 
     Reference: De Moura & Bjørner (2008) "Z3: An Efficient SMT Solver".
 """
+
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
-from nesy.core.exceptions import NeSyError, SymbolicConflict
+from nesy.core.exceptions import NeSyError
 from nesy.core.types import Predicate, SymbolicRule
 
 logger = logging.getLogger(__name__)
@@ -39,10 +40,7 @@ try:
     Z3_AVAILABLE = True
 except ImportError:  # pragma: no cover
     Z3_AVAILABLE = False
-    logger.info(
-        "Z3 not installed. Arithmetic constraints disabled. "
-        "pip install z3-solver"
-    )
+    logger.info("Z3 not installed. Arithmetic constraints disabled. pip install z3-solver")
 
 
 VALID_OPERATORS = frozenset({">=", "<=", ">", "<", "==", "!=", "between"})
@@ -68,17 +66,11 @@ class ArithmeticConstraint:
     def __post_init__(self) -> None:
         if self.operator not in VALID_OPERATORS:
             raise ValueError(
-                f"Invalid operator '{self.operator}'. "
-                f"Must be one of {sorted(VALID_OPERATORS)}."
+                f"Invalid operator '{self.operator}'. Must be one of {sorted(VALID_OPERATORS)}."
             )
         if self.operator == "between":
-            if (
-                not isinstance(self.value, (tuple, list))
-                or len(self.value) != 2
-            ):
-                raise ValueError(
-                    "'between' operator requires a (lo, hi) tuple as value."
-                )
+            if not isinstance(self.value, (tuple, list)) or len(self.value) != 2:
+                raise ValueError("'between' operator requires a (lo, hi) tuple as value.")
         if not self.variable:
             raise ValueError("Constraint variable name must be non-empty.")
 
@@ -281,8 +273,7 @@ class ConstraintSolver:
             ok = self._evaluate(val, c.operator, c.value)
             if not ok:
                 violations.append(
-                    f"Constraint violated: {c.variable} {c.operator} "
-                    f"{c.value} (actual: {val})"
+                    f"Constraint violated: {c.variable} {c.operator} {c.value} (actual: {val})"
                 )
                 violation_ids.append(idx)
 
@@ -294,6 +285,7 @@ class ConstraintSolver:
             from nesy.symbolic.unsat_explanation import (
                 explain_constraint_violations,
             )
+
             unsat_core = explain_constraint_violations(
                 constraint_ids=violation_ids,
                 violations=violations,
@@ -396,10 +388,7 @@ class ConstraintSolver:
                 if label_name in tracked:
                     idx, c = tracked[label_name]
                     constraint_ids.append(idx)
-                    violations.append(
-                        f"Constraint violated: {c.variable} {c.operator} "
-                        f"{c.value}"
-                    )
+                    violations.append(f"Constraint violated: {c.variable} {c.operator} {c.value}")
             # If core is empty, fallback to per-constraint check
             if not violations:
                 for idx, c in enumerate(self._constraints):
@@ -412,14 +401,13 @@ class ConstraintSolver:
                                 f"{c.operator} {c.value} (actual: {val})"
                             )
                             constraint_ids.append(idx)
-            logger.info(
-                "Z3 UNSAT — %d violation(s): %s", len(violations), violations
-            )
+            logger.info("Z3 UNSAT — %d violation(s): %s", len(violations), violations)
 
             # Build UnsatCore from Z3 unsat core
             from nesy.symbolic.unsat_explanation import (
                 explain_constraint_violations,
             )
+
             core_labels = [str(label) for label in core]
             unsat_core = explain_constraint_violations(
                 constraint_ids=constraint_ids,
@@ -435,15 +423,11 @@ class ConstraintSolver:
             )
         else:
             # z3.unknown — solver timeout or incomplete theory
-            logger.warning(
-                "Z3 returned UNKNOWN — treating as satisfiable."
-            )
+            logger.warning("Z3 returned UNKNOWN — treating as satisfiable.")
             return ConstraintResult(satisfiable=True)
 
     @staticmethod
-    def _to_z3_expr(
-        v: "z3.ArithRef", c: ArithmeticConstraint
-    ) -> "z3.BoolRef":
+    def _to_z3_expr(v: "z3.ArithRef", c: ArithmeticConstraint) -> "z3.BoolRef":
         """Convert an ArithmeticConstraint to a Z3 boolean expression.
 
         Args:
@@ -561,14 +545,11 @@ class ConstraintSolver:
                     break
 
             if all_matched:
-                grounded_consequents = [
-                    apply_substitution(c, theta) for c in rule.consequents
-                ]
+                grounded_consequents = [apply_substitution(c, theta) for c in rule.consequents]
                 for gc in grounded_consequents:
                     if gc.name.startswith("Contraindication"):
                         violations.append(
-                            f"Hard constraint '{rule.id}' violated: "
-                            f"{gc} (rule: {rule.description})"
+                            f"Hard constraint '{rule.id}' violated: {gc} (rule: {rule.description})"
                         )
 
         return (len(violations) == 0, violations)

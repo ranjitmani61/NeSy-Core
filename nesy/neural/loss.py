@@ -17,7 +17,7 @@ Mathematical basis:
    Encodes soft logic: AND → product t-norm, OR → probabilistic sum
    L_AND(a,b) = max(0, a+b-1)   (Lukasiewicz t-norm)
    L_OR(a,b)  = min(1, a+b)
-   
+
    This gives differentiable logical operators for training.
 
 3. KBConstraintLoss:
@@ -25,21 +25,22 @@ Mathematical basis:
    Particularly useful for sequence models where output must satisfy
    domain constraints at every step.
 """
+
 from __future__ import annotations
 
 import math
-from typing import Callable, Dict, List, Optional
+from typing import Dict, List
 
 from nesy.core.types import SymbolicRule
 
 
 class SymbolicHingeLoss:
     """Hinge loss over symbolic rule satisfaction.
-    
+
     For each violated rule, penalises proportional to:
         - rule weight (importance)
         - degree of violation (how far from satisfied)
-    
+
     L_symbolic = Σᵣ wᵣ × max(0, 1 - satisfaction(r))
     """
 
@@ -54,7 +55,7 @@ class SymbolicHingeLoss:
         """
         Args:
             satisfaction_scores: {rule.id: how satisfied this rule is by current output}
-        
+
         Returns:
             Scalar loss value (add to task loss)
         """
@@ -68,10 +69,10 @@ class SymbolicHingeLoss:
 
 class LukasiewiczLogic:
     """Differentiable logical operators using Lukasiewicz t-norms.
-    
+
     Maps logical connectives to continuous [0,1] operations that
     are compatible with gradient descent.
-    
+
     All inputs should be probabilities / confidences ∈ [0,1].
     """
 
@@ -107,9 +108,9 @@ class LukasiewiczLogic:
         consequent_scores: List[float],
     ) -> float:
         """Compute satisfaction score for a single rule.
-        
+
         Rule: A₁ ∧ A₂ ∧ ... → C₁ ∧ C₂ ∧ ...
-        
+
         Satisfaction = IMPLIES(AND(antecedents), AND(consequents))
         """
         if not antecedent_scores:
@@ -132,24 +133,24 @@ class LukasiewiczLogic:
 
 class KBConstraintLoss:
     """Knowledge Base constraint loss for sequence generation.
-    
+
     Penalises output tokens/distributions that violate symbolic constraints.
     Useful for ensuring generated text/diagnoses/code obeys domain rules.
-    
+
     L_kb = -log(P(output satisfies all rules))
          = -Σᵣ wᵣ × log(satisfaction(r, output))
     """
 
     def __init__(self, rules: List[SymbolicRule], epsilon: float = 1e-8):
-        self.rules   = rules
-        self.epsilon = epsilon   # numerical stability for log
+        self.rules = rules
+        self.epsilon = epsilon  # numerical stability for log
 
     def __call__(
         self,
         satisfaction_scores: Dict[str, float],
     ) -> float:
         """Negative log-likelihood of rule satisfaction.
-        
+
         Returns scalar. Minimising this encourages rule-consistent outputs.
         """
         total = 0.0

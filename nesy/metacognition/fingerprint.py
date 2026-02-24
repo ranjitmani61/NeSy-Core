@@ -28,14 +28,11 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 from nesy.core.types import (
-    ConfidenceReport,
     NSIOutput,
     NullItem,
-    NullSet,
-    OutputStatus,
     UnsatCore,
 )
 from nesy.neural.nsil import IntegrityReport
@@ -44,6 +41,7 @@ from nesy.neural.nsil import IntegrityReport
 # ─────────────────────────────────────────────
 #  CONFIG HASH
 # ─────────────────────────────────────────────
+
 
 def compute_config_hash(config_snapshot: Dict[str, Any]) -> str:
     """Stable SHA-256 hash of a config dictionary.
@@ -61,15 +59,14 @@ def compute_config_hash(config_snapshot: Dict[str, Any]) -> str:
     str
         64-char hex SHA-256 digest.
     """
-    canonical = json.dumps(
-        config_snapshot, sort_keys=True, separators=(",", ":")
-    )
+    canonical = json.dumps(config_snapshot, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 # ─────────────────────────────────────────────
 #  CANONICALIZATION
 # ─────────────────────────────────────────────
+
 
 def _round_float(value: float, decimals: int = 6) -> float:
     """Round a float to fixed decimals. Maps NaN/Inf to 0.0."""
@@ -192,6 +189,7 @@ def canonicalize_output(
 # ─────────────────────────────────────────────
 #  FINGERPRINT COMPUTATION
 # ─────────────────────────────────────────────
+
 
 def compute_reasoning_fingerprint(
     output: NSIOutput,

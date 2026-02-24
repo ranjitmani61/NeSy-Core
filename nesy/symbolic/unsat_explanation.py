@@ -44,9 +44,7 @@ import logging
 from typing import Dict, List, Optional, Set, Tuple
 
 from nesy.core.types import (
-    NullItem,
     NullSet,
-    NullType,
     Predicate,
     SymbolicRule,
     UnsatCore,
@@ -58,6 +56,7 @@ logger = logging.getLogger(__name__)
 # ───────────────────────────────────────────────────────────────────
 #  CORE EXPLANATION GENERATOR
 # ───────────────────────────────────────────────────────────────────
+
 
 def explain_unsat_core(
     conflicting_rule_ids: List[str],
@@ -114,9 +113,7 @@ def explain_unsat_core(
     )
 
     # ── Propose repairs ────────────────────────────────────────
-    suggested, repair_actions = _propose_repairs(
-        conflicting_rules, facts
-    )
+    suggested, repair_actions = _propose_repairs(conflicting_rules, facts)
 
     core = UnsatCore(
         conflicting_rule_ids=list(conflicting_rule_ids),
@@ -134,6 +131,7 @@ def explain_unsat_core(
 # ───────────────────────────────────────────────────────────────────
 #  EXPLANATION TEXT GENERATOR
 # ───────────────────────────────────────────────────────────────────
+
 
 def _generate_explanation_text(
     rule_ids: List[str],
@@ -157,16 +155,10 @@ def _generate_explanation_text(
     if n == 1:
         header = f"Rule '{rule_ids[0]}' is violated by the current facts."
     elif n == 2:
-        header = (
-            f"These 2 rules cannot be true together: "
-            f"'{rule_ids[0]}' and '{rule_ids[1]}'."
-        )
+        header = f"These 2 rules cannot be true together: '{rule_ids[0]}' and '{rule_ids[1]}'."
     else:
         quoted = ", ".join(f"'{rid}'" for rid in rule_ids[:-1])
-        header = (
-            f"These {n} rules cannot all be true together: "
-            f"{quoted}, and '{rule_ids[-1]}'."
-        )
+        header = f"These {n} rules cannot all be true together: {quoted}, and '{rule_ids[-1]}'."
 
     # ── Rule details ───────────────────────────────────────────
     detail_lines: List[str] = []
@@ -212,9 +204,7 @@ def _analyse_antecedent_conflict(
         for ant in rule.antecedents:
             ant_str = str(ant)
             # Check if any fact matches (including variable-bearing)
-            if ant_str in fact_names or any(
-                _predicate_matches(ant, f) for f in facts
-            ):
+            if ant_str in fact_names or any(_predicate_matches(ant, f) for f in facts):
                 matched.append(ant_str)
             else:
                 unmatched.append(ant_str)
@@ -234,10 +224,7 @@ def _analyse_antecedent_conflict(
 
     if missing_antecedents:
         for rid, missing in missing_antecedents.items():
-            lines.append(
-                f"Rule '{rid}' expects: {', '.join(missing)} "
-                f"(not currently present)."
-            )
+            lines.append(f"Rule '{rid}' expects: {', '.join(missing)} (not currently present).")
 
     return "\n".join(lines)
 
@@ -263,6 +250,7 @@ def _predicate_matches(pattern: Predicate, fact: Predicate) -> bool:
 # ───────────────────────────────────────────────────────────────────
 #  REPAIR PROPOSALS
 # ───────────────────────────────────────────────────────────────────
+
 
 def _propose_repairs(
     rules: List[SymbolicRule],
@@ -292,16 +280,18 @@ def _propose_repairs(
                 if concept not in seen_concepts:
                     seen_concepts.add(concept)
                     suggested.append(concept)
-                    repairs.append({
-                        "action": "add_fact",
-                        "concept": concept,
-                        "predicate": str(ant),
-                        "reason": (
-                            f"Adding '{concept}' would satisfy the antecedent "
-                            f"of rule '{rule.id}', potentially resolving the "
-                            f"conflict."
-                        ),
-                    })
+                    repairs.append(
+                        {
+                            "action": "add_fact",
+                            "concept": concept,
+                            "predicate": str(ant),
+                            "reason": (
+                                f"Adding '{concept}' would satisfy the antecedent "
+                                f"of rule '{rule.id}', potentially resolving the "
+                                f"conflict."
+                            ),
+                        }
+                    )
 
         # Strategy 2: suggest guard predicates from consequents
         for con in rule.consequents:
@@ -309,16 +299,18 @@ def _propose_repairs(
                 guard_concept = _predicate_to_concept(con)
                 if guard_concept not in seen_concepts:
                     seen_concepts.add(guard_concept)
-                    repairs.append({
-                        "action": "add_guard",
-                        "concept": guard_concept,
-                        "predicate": str(con),
-                        "reason": (
-                            f"Explicitly asserting '{guard_concept}' could "
-                            f"disambiguate the contradiction from rule "
-                            f"'{rule.id}'."
-                        ),
-                    })
+                    repairs.append(
+                        {
+                            "action": "add_guard",
+                            "concept": guard_concept,
+                            "predicate": str(con),
+                            "reason": (
+                                f"Explicitly asserting '{guard_concept}' could "
+                                f"disambiguate the contradiction from rule "
+                                f"'{rule.id}'."
+                            ),
+                        }
+                    )
 
     return suggested, repairs
 
@@ -341,6 +333,7 @@ def _predicate_to_concept(pred: Predicate) -> str:
 # ───────────────────────────────────────────────────────────────────
 #  UNSAT-CORE + NSI INTEGRATION  (for CFG bridge)
 # ───────────────────────────────────────────────────────────────────
+
 
 def enrich_with_null_set(
     core: UnsatCore,
@@ -372,34 +365,38 @@ def enrich_with_null_set(
         if item.concept not in seen:
             seen.add(item.concept)
             suggested.insert(0, item.concept)  # prepend = higher priority
-            repairs.insert(0, {
-                "action": "add_critical_concept",
-                "concept": item.concept,
-                "predicate": item.concept,
-                "reason": (
-                    f"CRITICAL: '{item.concept}' is absent but causally "
-                    f"necessary (expected because of: "
-                    f"{', '.join(item.expected_because_of)}). "
-                    f"Adding it may resolve the contradiction."
-                ),
-            })
+            repairs.insert(
+                0,
+                {
+                    "action": "add_critical_concept",
+                    "concept": item.concept,
+                    "predicate": item.concept,
+                    "reason": (
+                        f"CRITICAL: '{item.concept}' is absent but causally "
+                        f"necessary (expected because of: "
+                        f"{', '.join(item.expected_because_of)}). "
+                        f"Adding it may resolve the contradiction."
+                    ),
+                },
+            )
 
     # Add meaningful nulls that overlap with suggested additions
     for item in null_set.meaningful_items:
         if item.concept in seen and item.concept not in [
-            r.get("concept") for r in repairs
-            if r.get("action") == "add_critical_concept"
+            r.get("concept") for r in repairs if r.get("action") == "add_critical_concept"
         ]:
-            repairs.append({
-                "action": "confirm_meaningful_null",
-                "concept": item.concept,
-                "predicate": item.concept,
-                "reason": (
-                    f"'{item.concept}' appears in both the unsat core "
-                    f"repair set and the NSI meaningful nulls — strong "
-                    f"signal that this concept should be provided."
-                ),
-            })
+            repairs.append(
+                {
+                    "action": "confirm_meaningful_null",
+                    "concept": item.concept,
+                    "predicate": item.concept,
+                    "reason": (
+                        f"'{item.concept}' appears in both the unsat core "
+                        f"repair set and the NSI meaningful nulls — strong "
+                        f"signal that this concept should be provided."
+                    ),
+                }
+            )
 
     return UnsatCore(
         conflicting_rule_ids=core.conflicting_rule_ids,
@@ -414,6 +411,7 @@ def enrich_with_null_set(
 # ───────────────────────────────────────────────────────────────────
 #  FORMATTED REPORT (for explain_contradiction)
 # ───────────────────────────────────────────────────────────────────
+
 
 def format_contradiction_report(
     core: UnsatCore,
@@ -471,6 +469,7 @@ def format_contradiction_report(
 #  CONSTRAINT SOLVER → UNSAT CORE BRIDGE
 # ───────────────────────────────────────────────────────────────────
 
+
 def explain_constraint_violations(
     constraint_ids: List[int],
     violations: List[str],
@@ -495,8 +494,7 @@ def explain_constraint_violations(
 
     n = len(violations)
     header = (
-        f"{n} arithmetic constraint{'s' if n != 1 else ''} "
-        f"{'are' if n != 1 else 'is'} violated:"
+        f"{n} arithmetic constraint{'s' if n != 1 else ''} {'are' if n != 1 else 'is'} violated:"
     )
 
     detail_lines = [f"  • {v}" for v in violations]

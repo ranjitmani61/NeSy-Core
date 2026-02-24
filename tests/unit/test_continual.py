@@ -3,9 +3,10 @@ tests/unit/test_continual.py
 ===============================
 Tests for continual learning: EWC, SymbolicAnchor, MemoryBuffer, Scheduler.
 """
+
 import pytest
 from nesy.continual.learner import ContinualLearner, SymbolicAnchor
-from nesy.continual.ewc import EWCRegularizer, EWCSnapshot
+from nesy.continual.ewc import EWCRegularizer
 from nesy.continual.memory_buffer import EpisodicMemoryBuffer, MemoryItem
 from nesy.continual.scheduler import ConsolidationScheduler
 from nesy.core.types import Predicate, SymbolicRule

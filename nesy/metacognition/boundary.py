@@ -6,16 +6,16 @@ the model's competence (in-distribution vs. out-of-distribution).
 
 Mathematical basis:
     K-Nearest Neighbours distance in embedding space:
-    
+
     C_boundary(q) = 1 / (1 + d_k(q, D_train))
-    
+
     Where:
         d_k(q, D_train) = mean distance to k nearest training examples
         d(a, b)         = 1 - cosine_similarity(a, b)
-    
+
     In-distribution:  d_k ≈ 0 → C_boundary ≈ 1.0
     Out-of-distribution: d_k ≈ 1 → C_boundary ≈ 0.5
-    
+
     Threshold: if C_boundary < boundary_threshold, the query is
     flagged as out-of-distribution — the system should not be trusted.
 
@@ -28,6 +28,7 @@ with the neural_confidence proxy. Use this when:
 If you don't have training embeddings, use the neural_confidence
 proxy in monitor.py (default behavior).
 """
+
 from __future__ import annotations
 
 import heapq
@@ -40,12 +41,12 @@ logger = logging.getLogger(__name__)
 
 class KNNBoundaryEstimator:
     """K-Nearest Neighbours knowledge boundary estimator.
-    
+
     Usage:
         # During training/setup:
         estimator = KNNBoundaryEstimator(k=5)
         estimator.fit(training_embeddings)
-        
+
         # At inference:
         confidence = estimator.estimate(query_embedding)
     """
@@ -70,14 +71,14 @@ class KNNBoundaryEstimator:
 
     def estimate(self, query_embedding: List[float]) -> float:
         """Estimate C_boundary for a query embedding.
-        
+
         Returns:
             float ∈ [0, 1]: higher = more in-distribution
-            
+
         If not fitted, returns 0.9 (permissive default).
         """
         if not self._fitted or not self._training_embeddings:
-            return 0.90   # default: assume in-distribution
+            return 0.90  # default: assume in-distribution
 
         distances = self._k_nearest_distances(query_embedding)
         if not distances:
@@ -91,11 +92,11 @@ class KNNBoundaryEstimator:
 
     def _k_nearest_distances(self, query: List[float]) -> List[float]:
         """Find k smallest cosine distances from query to training set.
-        
+
         Uses a max-heap for efficient top-k tracking.
         O(n × d) where n = training set size, d = embedding dimension.
         """
-        heap: List[Tuple[float, int]] = []   # max-heap (negate to simulate)
+        heap: List[Tuple[float, int]] = []  # max-heap (negate to simulate)
 
         for i, emb in enumerate(self._training_embeddings):
             dist = 1.0 - self._cosine_similarity(query, emb)
@@ -110,7 +111,7 @@ class KNNBoundaryEstimator:
     def _cosine_similarity(a: List[float], b: List[float]) -> float:
         if len(a) != len(b):
             return 0.0
-        dot   = sum(x * y for x, y in zip(a, b))
+        dot = sum(x * y for x, y in zip(a, b))
         norm_a = math.sqrt(sum(x * x for x in a))
         norm_b = math.sqrt(sum(y * y for y in b))
         if norm_a < 1e-10 or norm_b < 1e-10:
@@ -124,13 +125,13 @@ class KNNBoundaryEstimator:
 
 class DensityBoundaryEstimator:
     """Alternative boundary estimator using Gaussian density estimation.
-    
+
     Models training distribution as a mixture of Gaussians.
     Faster than KNN for large training sets.
-    
+
     p_train(q) = (1/N) Σᵢ K(q - xᵢ)  (kernel density estimate)
     K(u) = exp(-‖u‖² / 2σ²) / (σ√2π)  (Gaussian kernel)
-    
+
     C_boundary(q) = p_train(q) / p_max  (normalised density)
     """
 
@@ -161,5 +162,5 @@ class DensityBoundaryEstimator:
         total = 0.0
         for emb in self._training:
             sq_dist = sum((a - b) ** 2 for a, b in zip(query, emb))
-            total  += math.exp(-sq_dist / (2 * self.bandwidth ** 2))
+            total += math.exp(-sq_dist / (2 * self.bandwidth**2))
         return total / n

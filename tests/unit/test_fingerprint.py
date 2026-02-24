@@ -51,6 +51,7 @@ from nesy.neural.nsil import IntegrityItem, IntegrityReport
 #  FIXTURES
 # ═══════════════════════════════════════════════════════════════════
 
+
 @pytest.fixture
 def sample_output():
     """A complete NSIOutput for fingerprint tests."""
@@ -129,8 +130,12 @@ def sample_unsat_core():
 def sample_nsil_report():
     return IntegrityReport(
         items=[
-            IntegrityItem(schema="HasSymptom", evidence=0.92, membership=1.0, need=1.0, residual=0.08),
-            IntegrityItem(schema="PossiblyHas", evidence=0.88, membership=1.0, need=1.0, residual=0.12),
+            IntegrityItem(
+                schema="HasSymptom", evidence=0.92, membership=1.0, need=1.0, residual=0.08
+            ),
+            IntegrityItem(
+                schema="PossiblyHas", evidence=0.88, membership=1.0, need=1.0, residual=0.12
+            ),
         ],
         integrity_score=0.91,
         flags=[],
@@ -141,6 +146,7 @@ def sample_nsil_report():
 # ═══════════════════════════════════════════════════════════════════
 #  HELPER FUNCTION TESTS
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestRoundFloat:
     def test_normal(self):
@@ -242,6 +248,7 @@ class TestComputeConfigHash:
 #  CANONICALIZE OUTPUT TESTS
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestCanonicalizeOutput:
     def test_has_all_keys(self, sample_output):
         payload = canonicalize_output(sample_output)
@@ -281,6 +288,7 @@ class TestCanonicalizeOutput:
 #  FINGERPRINT CORE TESTS
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestIdenticalInputs:
     """Identical inputs → identical fingerprints."""
 
@@ -294,12 +302,20 @@ class TestIdenticalInputs:
         fp2 = compute_reasoning_fingerprint(sample_output, config_snapshot=sample_config)
         assert fp1 == fp2
 
-    def test_same_with_all_components(self, sample_output, sample_config, sample_unsat_core, sample_nsil_report):
+    def test_same_with_all_components(
+        self, sample_output, sample_config, sample_unsat_core, sample_nsil_report
+    ):
         fp1 = compute_reasoning_fingerprint(
-            sample_output, sample_config, sample_unsat_core, sample_nsil_report,
+            sample_output,
+            sample_config,
+            sample_unsat_core,
+            sample_nsil_report,
         )
         fp2 = compute_reasoning_fingerprint(
-            sample_output, sample_config, sample_unsat_core, sample_nsil_report,
+            sample_output,
+            sample_config,
+            sample_unsat_core,
+            sample_nsil_report,
         )
         assert fp1 == fp2
 
@@ -344,8 +360,12 @@ class TestReorderInvariance:
 
     def test_reorder_null_items(self, sample_output):
         """Null items in different order → same fingerprint (sorted)."""
-        item1 = NullItem(concept="a", weight=0.5, null_type=NullType.TYPE1_EXPECTED, expected_because_of=["x"])
-        item2 = NullItem(concept="b", weight=0.6, null_type=NullType.TYPE2_MEANINGFUL, expected_because_of=["y"])
+        item1 = NullItem(
+            concept="a", weight=0.5, null_type=NullType.TYPE1_EXPECTED, expected_because_of=["x"]
+        )
+        item2 = NullItem(
+            concept="b", weight=0.6, null_type=NullType.TYPE2_MEANINGFUL, expected_because_of=["y"]
+        )
 
         output_a = copy.deepcopy(sample_output)
         output_b = copy.deepcopy(sample_output)
@@ -484,6 +504,7 @@ class TestConfigHash:
 #  API INTEGRATION
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestFingerprintInNSIOutput:
     """Fingerprint is attached to every NSIOutput from reason()."""
 
@@ -493,13 +514,15 @@ class TestFingerprintInNSIOutput:
         from nesy.core.types import SymbolicRule
 
         model = NeSyModel(domain="general")
-        model.add_rule(SymbolicRule(
-            id="test_rule",
-            antecedents=[Predicate("A", ("x",))],
-            consequents=[Predicate("B", ("x",))],
-            weight=0.9,
-            description="A → B",
-        ))
+        model.add_rule(
+            SymbolicRule(
+                id="test_rule",
+                antecedents=[Predicate("A", ("x",))],
+                consequents=[Predicate("B", ("x",))],
+                weight=0.9,
+                description="A → B",
+            )
+        )
         output = model.reason(facts={Predicate("A", ("x",))})
         assert output.reasoning_fingerprint is not None
         assert len(output.reasoning_fingerprint) == 64
@@ -511,12 +534,14 @@ class TestFingerprintInNSIOutput:
 
         model = NeSyModel(domain="general")
         # Create a contradicting rule set
-        model.add_rule(SymbolicRule(
-            id="r_neg",
-            antecedents=[Predicate("NOT_A", ("x",))],
-            consequents=[Predicate("A", ("x",))],
-            weight=1.0,
-        ))
+        model.add_rule(
+            SymbolicRule(
+                id="r_neg",
+                antecedents=[Predicate("NOT_A", ("x",))],
+                consequents=[Predicate("A", ("x",))],
+                weight=1.0,
+            )
+        )
         output = model.reason(facts={Predicate("NOT_A", ("x",))})
         assert output.reasoning_fingerprint is not None
         assert len(output.reasoning_fingerprint) == 64
@@ -527,13 +552,15 @@ class TestFingerprintInNSIOutput:
         from nesy.core.types import SymbolicRule
 
         model = NeSyModel(domain="general")
-        model.add_rule(SymbolicRule(
-            id="r1",
-            antecedents=[Predicate("A", ("x",))],
-            consequents=[Predicate("B", ("x",))],
-            weight=0.9,
-            description="A → B",
-        ))
+        model.add_rule(
+            SymbolicRule(
+                id="r1",
+                antecedents=[Predicate("A", ("x",))],
+                consequents=[Predicate("B", ("x",))],
+                weight=0.9,
+                description="A → B",
+            )
+        )
         facts = {Predicate("A", ("x",))}
         output1 = model.reason(facts=facts)
         output2 = model.reason(facts=facts)
@@ -548,12 +575,14 @@ class TestFingerprintInPCAP:
         from nesy.core.types import SymbolicRule
 
         model = NeSyModel(domain="general")
-        model.add_rule(SymbolicRule(
-            id="r1",
-            antecedents=[Predicate("A", ("x",))],
-            consequents=[Predicate("B", ("x",))],
-            weight=0.9,
-        ))
+        model.add_rule(
+            SymbolicRule(
+                id="r1",
+                antecedents=[Predicate("A", ("x",))],
+                consequents=[Predicate("B", ("x",))],
+                weight=0.9,
+            )
+        )
         output = model.reason(facts={Predicate("A", ("x",))})
         capsule = model.export_proof_capsule(output)
         d = capsule.to_dict()
@@ -566,12 +595,14 @@ class TestFingerprintInPCAP:
         from nesy.core.types import SymbolicRule
 
         model = NeSyModel(domain="general")
-        model.add_rule(SymbolicRule(
-            id="r1",
-            antecedents=[Predicate("A", ("x",))],
-            consequents=[Predicate("B", ("x",))],
-            weight=0.9,
-        ))
+        model.add_rule(
+            SymbolicRule(
+                id="r1",
+                antecedents=[Predicate("A", ("x",))],
+                consequents=[Predicate("B", ("x",))],
+                weight=0.9,
+            )
+        )
         output = model.reason(facts={Predicate("A", ("x",))})
         path = str(tmp_path / "test.pcap.json")
         model.export_proof_capsule(output, path=path)

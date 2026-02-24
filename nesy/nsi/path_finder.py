@@ -14,7 +14,7 @@ Used for:
 Algorithm: Modified Dijkstra on the weighted directed graph.
     Edge weight as distance = 1 - W(a→b)
     (higher weight = shorter distance = stronger connection)
-    
+
 Shortest path in this space = strongest causal/semantic connection.
 
 Mathematical basis:
@@ -22,12 +22,13 @@ Mathematical basis:
     Dijkstra minimises Σ d(aᵢ, aᵢ₊₁) along a path
     = maximises Σ W(aᵢ, aᵢ₊₁) (strongest path)
 """
+
 from __future__ import annotations
 
 import heapq
 import logging
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
@@ -35,12 +36,13 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ConceptPath:
     """A path through the concept graph."""
-    source:      str
-    target:      str
-    nodes:       List[str]          # [source, intermediate..., target]
-    weights:     List[float]        # edge weights along path
-    total_weight: float             # sum of edge weights (strength)
-    hops:        int               # len(nodes) - 1
+
+    source: str
+    target: str
+    nodes: List[str]  # [source, intermediate..., target]
+    weights: List[float]  # edge weights along path
+    total_weight: float  # sum of edge weights (strength)
+    hops: int  # len(nodes) - 1
 
     def explain(self) -> str:
         if not self.nodes:
@@ -48,19 +50,19 @@ class ConceptPath:
         parts = []
         for i in range(len(self.nodes) - 1):
             w = self.weights[i] if i < len(self.weights) else 0.0
-            parts.append(f"{self.nodes[i]} →[{w:.2f}]→ {self.nodes[i+1]}")
+            parts.append(f"{self.nodes[i]} →[{w:.2f}]→ {self.nodes[i + 1]}")
         return " ".join(parts)
 
 
 class ConceptPathFinder:
     """Find paths between concepts using weighted Dijkstra.
-    
+
     Usage:
         finder = ConceptPathFinder(graph._graph)
-        
+
         path = finder.shortest_path("fever", "blood_test")
         print(path.explain())
-        
+
         reachable = finder.reachable_from("fever", max_hops=3)
     """
 
@@ -73,19 +75,20 @@ class ConceptPathFinder:
 
     def shortest_path(
         self,
-        source:    str,
-        target:    str,
-        max_hops:  int = 10,
+        source: str,
+        target: str,
+        max_hops: int = 10,
     ) -> Optional[ConceptPath]:
         """Find strongest-connection path from source to target.
-        
+
         Uses Dijkstra with distance = 1 - W(a→b).
-        
+
         Returns None if target is unreachable within max_hops.
         """
         if source == target:
-            return ConceptPath(source=source, target=target, nodes=[source],
-                               weights=[], total_weight=0.0, hops=0)
+            return ConceptPath(
+                source=source, target=target, nodes=[source], weights=[], total_weight=0.0, hops=0
+            )
 
         if source not in self._graph:
             return None
@@ -107,8 +110,8 @@ class ConceptPathFinder:
             for neighbor, edge in self._graph.get(node, {}).items():
                 if neighbor in visited:
                     continue
-                new_dist   = dist + (1.0 - edge.weight)
-                new_path   = path + [neighbor]
+                new_dist = dist + (1.0 - edge.weight)
+                new_path = path + [neighbor]
                 new_weights = edge_weights + [edge.weight]
 
                 if neighbor == target:
@@ -128,13 +131,13 @@ class ConceptPathFinder:
 
     def all_paths(
         self,
-        source:    str,
-        target:    str,
-        max_hops:  int   = 5,
+        source: str,
+        target: str,
+        max_hops: int = 5,
         min_weight: float = 0.10,
     ) -> List[ConceptPath]:
         """Find ALL paths from source to target (up to max_hops).
-        
+
         Returns paths sorted by total_weight descending.
         Useful for explanation: "there are 3 reasons why B is expected".
         """
@@ -154,14 +157,14 @@ class ConceptPathFinder:
 
     def _dfs(
         self,
-        current:    str,
-        target:     str,
-        path:       List[str],
-        weights:    List[float],
-        visited:    Set[str],
-        max_hops:   int,
+        current: str,
+        target: str,
+        path: List[str],
+        weights: List[float],
+        visited: Set[str],
+        max_hops: int,
         min_weight: float,
-        results:    List[ConceptPath],
+        results: List[ConceptPath],
     ) -> None:
         if len(path) - 1 >= max_hops:
             return
@@ -170,36 +173,44 @@ class ConceptPathFinder:
                 continue
             if edge.weight < min_weight:
                 continue
-            new_path    = path + [neighbor]
+            new_path = path + [neighbor]
             new_weights = weights + [edge.weight]
             if neighbor == target:
-                results.append(ConceptPath(
-                    source=path[0],
-                    target=target,
-                    nodes=new_path,
-                    weights=new_weights,
-                    total_weight=sum(new_weights),
-                    hops=len(new_path) - 1,
-                ))
+                results.append(
+                    ConceptPath(
+                        source=path[0],
+                        target=target,
+                        nodes=new_path,
+                        weights=new_weights,
+                        total_weight=sum(new_weights),
+                        hops=len(new_path) - 1,
+                    )
+                )
             else:
                 self._dfs(
-                    neighbor, target, new_path, new_weights,
-                    visited | {neighbor}, max_hops, min_weight, results,
+                    neighbor,
+                    target,
+                    new_path,
+                    new_weights,
+                    visited | {neighbor},
+                    max_hops,
+                    min_weight,
+                    results,
                 )
 
     def reachable_from(
         self,
-        source:    str,
-        max_hops:  int   = 3,
+        source: str,
+        max_hops: int = 3,
         min_weight: float = 0.10,
     ) -> Dict[str, float]:
         """Find all concepts reachable from source within max_hops.
-        
+
         Returns dict: concept → best (max) path weight to reach it.
         Used for null set explanation: "fever transitively expects ECG via BP".
         """
         reachable: Dict[str, float] = {}
-        heap = [(0.0, source, 0)]   # (neg_weight, node, hops) — negate for max-heap
+        heap = [(0.0, source, 0)]  # (neg_weight, node, hops) — negate for max-heap
         visited: Set[str] = set()
 
         while heap:
@@ -226,11 +237,11 @@ class ConceptPathFinder:
 
     def explain_null(
         self,
-        absent_concept:   str,
+        absent_concept: str,
         present_concepts: Set[str],
     ) -> str:
         """Explain WHY an absent concept is in the null set.
-        
+
         Finds the strongest path from any present concept to the absent one.
         """
         best_path = None

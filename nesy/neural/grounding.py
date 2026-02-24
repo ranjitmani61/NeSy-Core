@@ -6,23 +6,24 @@ discrete symbolic predicates.
 
 Mathematical basis:
     Grounding function G: ℝᵈ → P(Predicates)
-    
+
     For each candidate predicate p with prototype vector μₚ:
         similarity(e, p) = cosine(e, μₚ) = (e · μₚ) / (‖e‖ × ‖μₚ‖)
-    
+
     Grounded predicates = { p | similarity(e, p) > θ_ground }
     Grounding confidence = max similarity over matched predicates
-    
+
     This is the Smolensky-Elman grounding approach:
     symbolic representations emerge from sub-symbolic vectors
     when similarity crosses a threshold.
 """
+
 from __future__ import annotations
 
 import math
 import logging
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import List, Optional, Tuple
 
 from nesy.core.types import GroundedSymbol, Predicate
 
@@ -32,18 +33,19 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PredicatePrototype:
     """A predicate with its prototype embedding vector.
-    
+
     The prototype is the 'canonical' embedding for this predicate —
     built by averaging embeddings of known instances during training.
     """
-    predicate:  Predicate
-    prototype:  List[float]     # canonical embedding vector μₚ
-    domain:     Optional[str] = None
+
+    predicate: Predicate
+    prototype: List[float]  # canonical embedding vector μₚ
+    domain: Optional[str] = None
 
 
 class SymbolGrounder:
     """Ground neural embeddings to symbolic predicates.
-    
+
     Usage:
         grounder = SymbolGrounder(threshold=0.75)
         grounder.register(PredicatePrototype(
@@ -80,12 +82,12 @@ class SymbolGrounder:
         top_k: int = 5,
     ) -> List[GroundedSymbol]:
         """Ground an embedding vector to its most similar predicates.
-        
+
         Args:
             embedding: Neural embedding vector ∈ ℝᵈ
             domain:    If set, only consider predicates from this domain
             top_k:     Return at most k grounded symbols
-        
+
         Returns:
             List of GroundedSymbol, sorted by grounding_confidence descending.
             Empty list if no predicate exceeds the threshold.
@@ -114,7 +116,7 @@ class SymbolGrounder:
 
     def ground_with_confidence(self, embedding: List[float]) -> Tuple[List[GroundedSymbol], float]:
         """Ground and return overall grounding confidence.
-        
+
         Overall confidence = max similarity across all matched predicates.
         Returns 0.0 if no predicate matched.
         """
@@ -127,7 +129,7 @@ class SymbolGrounder:
     @staticmethod
     def _cosine_similarity(a: List[float], b: List[float]) -> float:
         """Cosine similarity: (a · b) / (‖a‖ × ‖b‖)
-        
+
         Returns 0.0 for zero vectors.
         """
         if len(a) != len(b):
@@ -146,16 +148,13 @@ class SymbolGrounder:
         domain: Optional[str] = None,
     ) -> PredicatePrototype:
         """Build a prototype by averaging example embeddings.
-        
+
         μₚ = (1/n) Σᵢ eᵢ  then L2-normalise
         """
         if not example_embeddings:
             raise ValueError("Cannot build prototype from empty examples")
         dim = len(example_embeddings[0])
-        mean = [
-            sum(e[i] for e in example_embeddings) / len(example_embeddings)
-            for i in range(dim)
-        ]
+        mean = [sum(e[i] for e in example_embeddings) / len(example_embeddings) for i in range(dim)]
         # L2 normalise
         norm = math.sqrt(sum(x * x for x in mean))
         if norm > 1e-10:

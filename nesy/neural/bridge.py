@@ -14,23 +14,23 @@ it transforms representations, it does not store state.
 
 Mathematical basis (Symbolic → Neural loss):
     L_total = L_task + α × L_symbolic
-    
+
     L_symbolic = Σᵣ wᵣ × max(0, 1 - satisfaction_score(r, output))
-    
+
     Where:
         wᵣ               = rule weight
         satisfaction_score = how well output satisfies rule r
         α                = symbolic loss coefficient (hyperparameter)
-    
+
     This allows symbolic rules to directly shape gradient updates
     without modifying the symbolic engine — the bridge translates
     constraint violations into differentiable loss terms.
 """
+
 from __future__ import annotations
 
 import logging
-import math
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import List, Optional, Set, Tuple
 
 from nesy.core.types import GroundedSymbol, NullSet, Predicate, SymbolicRule
 from nesy.neural.grounding import SymbolGrounder
@@ -41,34 +41,34 @@ logger = logging.getLogger(__name__)
 
 class NeuralSymbolicBridge:
     """Connects neural encoder output to the symbolic reasoning engine.
-    
+
     Usage:
         bridge = NeuralSymbolicBridge(grounder, symbolic_loss_alpha=0.5)
-        
+
         # Neural → Symbolic
         predicates = bridge.neural_to_symbolic(embedding, domain="medical")
-        
+
         # Symbolic → Loss (during training)
         penalty = bridge.symbolic_to_loss(output_embedding, violated_rules)
     """
 
     def __init__(
         self,
-        grounder:             SymbolGrounder,
-        symbolic_loss_alpha:  float = 0.5,
+        grounder: SymbolGrounder,
+        symbolic_loss_alpha: float = 0.5,
     ):
         self.grounder = grounder
-        self.alpha    = symbolic_loss_alpha
+        self.alpha = symbolic_loss_alpha
 
     # ── Direction 1: Neural → Symbolic ───────────────────────────
 
     def neural_to_symbolic(
         self,
         embedding: List[float],
-        domain:    Optional[str] = None,
+        domain: Optional[str] = None,
     ) -> Tuple[Set[Predicate], float]:
         """Convert neural embedding to a set of symbolic predicates.
-        
+
         Returns:
             predicates:           Set of grounded Predicates for symbolic engine
             grounding_confidence: How confidently we made this conversion
@@ -86,19 +86,19 @@ class NeuralSymbolicBridge:
 
     def symbolic_to_loss(
         self,
-        output_embedding:  List[float],
-        violated_rules:    List[SymbolicRule],
+        output_embedding: List[float],
+        violated_rules: List[SymbolicRule],
     ) -> float:
         """Compute symbolic constraint loss for gradient update.
-        
+
         L_symbolic = α × Σᵣ wᵣ × hinge(satisfaction)
-        
+
         hinge(s) = max(0, 1 - s)  — zero if satisfied, positive if violated
-        
+
         Args:
             output_embedding: The neural model's output embedding
             violated_rules:   Rules whose constraints were not satisfied
-        
+
         Returns:
             Scalar loss penalty (add to task loss during training)
         """
@@ -118,15 +118,15 @@ class NeuralSymbolicBridge:
 
     def symbolic_constraint_gradient(
         self,
-        embedding:       List[float],
-        violated_rules:  List[SymbolicRule],
-        step_size:       float = 0.01,
+        embedding: List[float],
+        violated_rules: List[SymbolicRule],
+        step_size: float = 0.01,
     ) -> List[float]:
         """Compute gradient of symbolic loss w.r.t. embedding.
-        
+
         Used when backpropagation is available (PyTorch wrapper).
         Returns a gradient vector to add to the embedding's gradient.
-        
+
         For violated rules, we push the embedding toward the
         consequent predicate's prototype — making the output
         more consistent with what the rule demands.
