@@ -27,13 +27,17 @@ edge = [
     "onnx>=1.15",
     "onnxruntime>=1.16",
 ]
+export = [
+    "onnx>=1.15",
+    "onnxscript>=0.6",
+]
 dev = [
     "pytest>=7.4",
     "pytest-cov>=4.1",
     "ruff>=0.1",
     "mypy>=1.6",
 ]
-all = ["nesy-core[torch,server,edge,dev]"]
+all = ["nesy-core[torch,server,edge,export,dev]"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
